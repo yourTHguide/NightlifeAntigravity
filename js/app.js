@@ -617,32 +617,95 @@ function initBookingWizard() {
         container.appendChild(block);
     }
 
-    // Payment Button Logic (includes discount_code for Stripe)
+    // Payment Button Logic — Real Stripe Checkout Integration
     const payBtn = document.getElementById('confirm-payment');
     if (payBtn) {
-        payBtn.onclick = () => {
-            payBtn.textContent = 'PROCESSING...';
-            payBtn.disabled = true;
+        payBtn.onclick = async () => {
+            // ——— Validate required fields ———
+            const name = document.getElementById('guest-name').value.trim();
+            const email = document.getElementById('guest-email').value.trim();
+            const whatsapp = document.getElementById('guest-whatsapp').value.trim();
+            const eventDate = document.getElementById('selected-date').value;
 
-            // Collect booking data including promo code
-            const bookingData = {
-                date: document.getElementById('selected-date').value,
-                name: document.getElementById('guest-name').value,
-                email: document.getElementById('guest-email').value,
-                whatsapp: document.getElementById('guest-whatsapp').value,
-                discount_code: appliedPromo ? appliedPromo.code : null
+            if (!name || !email || !whatsapp) {
+                alert('Please fill in your Name, Email, and WhatsApp number.');
+                return;
+            }
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+            if (!eventDate) {
+                alert('Please select an event date first.');
+                return;
+            }
+
+            // ——— Collect pax breakdown ———
+            const blocks = document.querySelectorAll('.guest-block');
+            let maleCount = 0;
+            let femaleCount = 0;
+
+            blocks.forEach(block => {
+                const gender = block.querySelector('.guest-gender-select').value;
+                const count = parseInt(block.querySelector('.guest-count-input').value) || 0;
+                if (gender === 'male') maleCount += count;
+                else femaleCount += count;
+            });
+
+            if (maleCount + femaleCount === 0) {
+                alert('Please add at least 1 guest.');
+                return;
+            }
+
+            // ——— Show loading state ———
+            payBtn.textContent = 'CREATING CHECKOUT...';
+            payBtn.disabled = true;
+            payBtn.style.opacity = '0.7';
+
+            // ——— Build payload ———
+            const payload = {
+                guest: {
+                    first_name: name,
+                    email: email,
+                    phone: whatsapp
+                },
+                event_date: eventDate,
+                pax: {
+                    male: maleCount,
+                    female: femaleCount
+                },
+                promo_code: appliedPromo ? appliedPromo.code : null
             };
 
-            console.log('📋 Booking payload:', bookingData);
+            console.log('📋 Checkout payload:', payload);
 
-            setTimeout(() => {
-                alert('Booking Confirmed! (Stripe Integration Pending)');
-                closeModal();
+            try {
+                const response = await fetch('/api/create-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Checkout creation failed');
+                }
+
+                console.log('✅ Redirecting to Stripe Checkout:', data.url);
+
+                // Redirect to Stripe Checkout
+                window.location.href = data.url;
+
+            } catch (err) {
+                console.error('❌ Checkout error:', err);
+                alert(`Booking failed: ${err.message}\n\nPlease try again.`);
                 payBtn.textContent = 'PAY NOW via Stripe';
                 payBtn.disabled = false;
-                appliedPromo = null; // Reset promo state
-                showStep(1);
-            }, 2000);
+                payBtn.style.opacity = '1';
+            }
         };
     }
 }

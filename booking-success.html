@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmed — Bangkok Club Crawl</title>
+    <link rel="stylesheet" href="css/index.css">
+    <style>
+        .success-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-xl);
+            background: var(--color-dark-base);
+        }
+
+        .success-card {
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            padding: var(--space-3xl);
+            background: var(--color-dark-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            animation: fade-in-up 0.6s ease-out;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-lg);
+            display: block;
+            animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
+        }
+
+        .success-title {
+            font-family: var(--font-headline);
+            font-size: var(--text-h2);
+            color: var(--color-white);
+            margin-bottom: var(--space-md);
+        }
+
+        .success-subtitle {
+            color: var(--color-gray-light);
+            font-size: var(--text-body);
+            margin-bottom: var(--space-xl);
+            line-height: 1.6;
+        }
+
+        .booking-ref {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+
+        .ref-label {
+            font-size: var(--text-label);
+            color: var(--color-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--space-xs);
+        }
+
+        .ref-value {
+            font-family: var(--font-mono, monospace);
+            color: var(--color-gold);
+            font-size: var(--text-body);
+            word-break: break-all;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: rgba(52, 199, 89, 0.15);
+            color: #34C759;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-full);
+            font-weight: var(--weight-bold);
+            font-size: var(--text-small);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--space-lg);
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 159, 10, 0.15);
+            color: #FF9F0A;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: var(--space-sm) var(--space-xl);
+            background: var(--color-primary-gradient);
+            border: none;
+            border-radius: var(--radius-full);
+            color: var(--color-white);
+            font-weight: var(--weight-bold);
+            font-size: var(--text-body);
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition-base);
+        }
+
+        .back-btn:hover {
+            box-shadow: 0 0 25px var(--color-primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-xs) 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: var(--text-small);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--color-gray);
+        }
+
+        .detail-value {
+            color: var(--color-white);
+            font-weight: var(--weight-semibold);
+        }
+
+        @keyframes pop-in {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: var(--space-xl) auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="success-container">
+        <div class="success-card" id="success-card">
+            <div class="loading-spinner" id="loading"></div>
+            <p style="color: var(--color-gray-light); margin-top: var(--space-md);" id="loading-text">Verifying your
+                payment...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const card = document.getElementById('success-card');
+            const params = new URLSearchParams(window.location.search);
+            const sessionId = params.get('session_id');
+
+            if (!sessionId) {
+                showError('No session found. Please try booking again.');
+                return;
+            }
+
+            // Poll for booking status
+            try {
+                // Get booking info from the session
+                const response = await fetch(`/api/verify-session?session_id=${sessionId}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                showSuccess(data);
+            } catch (err) {
+                // Fallback: show generic success
+                showGenericSuccess();
+            }
+        });
+
+        function showSuccess(data) {
+            const card = document.getElementById('success-card');
+            card.innerHTML = `
+                <span class="success-icon">🎉</span>
+                <h1 class="success-title">You're In!</h1>
+                <p class="success-subtitle">Your Bangkok Club Crawl booking is confirmed. Check your email for the full details.</p>
+                <span class="status-badge">✓ Payment Confirmed</span>
+                ${data.booking_id ? `
+                <div class="booking-ref">
+                    <div class="ref-label">Booking Reference</div>
+                    <div class="ref-value">${data.booking_id}</div>
+                </div>
+                ` : ''}
+                ${data.event_date ? `
+                <div class="booking-ref" style="margin-top: var(--space-md);">
+                    <div class="detail-row">
+                        <span class="detail-label">Event Date</span>
+                        <span class="detail-value">${data.event_date}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Guests</span>
+                        <span class="detail-value">${data.quantity || '—'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Total Paid</span>
+                        <span class="detail-value" style="color: #34C759;">฿${(data.total_price || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+                ` : ''}
+                <a href="index.html" class="back-btn" style="margin-top: var(--space-xl); display: inline-block;">Back to Home</a>
+            `;
+        }
+
+        function showGenericSuccess() {
+            const card = document.getElementById('success-card');
+            card.innerHTML = `
+                <span class="success-icon">🎉</span>
+                <h1 class="success-title">You're In!</h1>
+                <p class="success-subtitle">Your booking is being processed. You'll receive a confirmation email shortly.</p>
+                <span class="status-badge">Processing...</span>
+                <a href="index.html" class="back-btn" style="margin-top: var(--space-xl); display: inline-block;">Back to Home</a>
+            `;
+        }
+
+        function showError(message) {
+            const card = document.getElementById('success-card');
+            card.innerHTML = `
+                <span class="success-icon">⚠️</span>
+                <h1 class="success-title">Something Went Wrong</h1>
+                <p class="success-subtitle">${message}</p>
+                <a href="index.html" class="back-btn" style="margin-top: var(--space-xl); display: inline-block;">Try Again</a>
+            `;
+        }
+    </script>
+</body>
+
+</html>
