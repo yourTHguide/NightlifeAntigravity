@@ -269,9 +269,39 @@
                         </div>
                         <div
                             style="border-top: 1px solid var(--color-border); margin: var(--space-md) 0; padding-top: var(--space-md); display: flex; justify-content: space-between;">
-                            <span style="font-weight: var(--weight-bold);">Total:</span>
+                            <span style="font-weight: var(--weight-bold);">Subtotal:</span>
+                            <span id="summary-subtotal"
+                                style="color: var(--color-white); font-weight: var(--weight-semibold);">฿2,400</span>
+                        </div>
+
+                        <!-- Promo Code Row -->
+                        <div id="promo-discount-row" style="margin-bottom: var(--space-sm); align-items: center;">
+                            <span style="color: var(--color-success); font-size: var(--text-small);">🎟️
+                                Discount:</span>
+                            <span id="promo-discount-amount"
+                                style="color: var(--color-success); font-weight: var(--weight-semibold);">-฿0</span>
+                        </div>
+
+                        <!-- Promo Code Input -->
+                        <div class="promo-code-section">
+                            <div class="promo-label">
+                                <span class="promo-tag-icon">🏷️</span>
+                                <span>Apply Discount Code</span>
+                            </div>
+                            <div class="promo-input-row">
+                                <input type="text" id="promo-code-input" placeholder="Enter code" class="promo-input"
+                                    maxlength="20" autocomplete="off">
+                                <button type="button" id="apply-promo-btn" class="promo-apply-btn">Apply</button>
+                            </div>
+                            <div id="promo-feedback" class="promo-feedback"></div>
+                        </div>
+
+                        <!-- Final Total -->
+                        <div
+                            style="border-top: 1px solid var(--color-border); margin: var(--space-md) 0; padding-top: var(--space-md); display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: var(--weight-bold); font-size: 1.1rem;">Total:</span>
                             <span id="summary-total"
-                                style="color: var(--color-gold); font-weight: var(--weight-bold); font-size: 1.25rem;">฿2,400</span>
+                                style="color: var(--color-gold); font-weight: var(--weight-bold); font-size: 1.4rem;">฿2,400</span>
                         </div>
                     </div>
                     <div class="wizard-footer" style="display: flex; gap: var(--space-md);">
@@ -318,6 +348,9 @@
             <span style="font-size: 1.5rem;">💬</span>
         </button>
     </div>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Scripts -->
     <script src="js/data.js"></script>
