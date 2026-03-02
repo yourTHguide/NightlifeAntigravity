@@ -661,10 +661,11 @@ app.get('/api/verify-session', async (req, res) => {
 });
 
 
-// ——— Start Server ———
-app.listen(PORT, () => {
-    const emailReady = process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD && process.env.EMAIL_APP_PASSWORD !== 'YOUR_16_CHAR_APP_PASSWORD_HERE';
-    console.log(`
+// ——— Start Server (local dev only — Vercel uses module.exports) ———
+if (require.main === module) {
+    app.listen(PORT, () => {
+        const emailReady = process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD && process.env.EMAIL_APP_PASSWORD !== 'YOUR_16_CHAR_APP_PASSWORD_HERE';
+        console.log(`
 ╔══════════════════════════════════════════════════╗
 ║  🌃 Bangkok Club Crawl — Booking Engine          ║
 ║  Server running at http://localhost:${PORT}          ║
@@ -679,5 +680,9 @@ app.listen(PORT, () => {
 ║    Admin:   ${emailReady ? ADMIN_EMAIL : '⏳ Not configured'}  ║
 ║    Status:  ${emailReady ? '✅ Ready' : '⏳ Paste App Password in .env'}              ║
 ╚══════════════════════════════════════════════════╝
-    `);
-});
+        `);
+    });
+}
+
+// Export for Vercel serverless
+module.exports = app;
