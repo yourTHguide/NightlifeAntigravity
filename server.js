@@ -3,7 +3,7 @@
  * 
  * Two endpoints:
  *   POST /api/create-checkout  → Guest upsert + Pending booking + Stripe Checkout
- *   POST /api/stripe-webhook   → Payment verification + Tag management + Zapier trigger
+ *   POST /api/stripe-webhook   → Payment verification + Tag management + Email notifications
  * 
  * Also serves the static frontend on all other routes.
  */
@@ -14,6 +14,7 @@ const cors = require('cors');
 const path = require('path');
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 
 // ——— Config ———
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -29,6 +30,180 @@ const PRICES = {
 
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || `http://localhost:${PORT}`;
+
+// ——— Email Config (Gmail SMTP via Nodemailer) ———
+const emailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD
+    }
+});
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'bestnightlifethailand@gmail.com';
+
+/**
+ * Sends an email using the configured Gmail transporter.
+ * Non-blocking — errors are logged but never crash the server.
+ */
+async function sendEmail({ to, subject, html, text }) {
+    try {
+        const info = await emailTransporter.sendMail({
+            from: `"Bangkok Club Crawl" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            html,
+            text
+        });
+        console.log(`📧 Email sent to ${to}: ${info.messageId}`);
+        return true;
+    } catch (err) {
+        console.error(`⚠️ Email to ${to} failed (non-blocking):`, err.message);
+        return false;
+    }
+}
+
+/**
+ * Generates the premium HTML email template for guest booking confirmation.
+ * Brand-aligned: dark base, pink accents, Montserrat/Inter fonts.
+ */
+function buildGuestConfirmationHTML({ firstName, eventDate, pax, totalPaid, bookingId }) {
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmed</title>
+</head>
+<body style="margin:0;padding:0;background-color:#111114;font-family:'Inter',Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#111114;">
+        <tr>
+            <td align="center" style="padding:40px 20px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding:30px 0 20px;">
+                            <h1 style="margin:0;font-family:'Montserrat',Arial,sans-serif;font-size:28px;font-weight:700;color:#FFFFFF;letter-spacing:0.02em;">BANGKOK CLUB CRAWL</h1>
+                            <p style="margin:8px 0 0;font-size:11px;color:#B76E79;letter-spacing:0.15em;text-transform:uppercase;">Bangkok Nights. Done Right.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Main Card -->
+                    <tr>
+                        <td style="background-color:#1C1C1E;border-radius:16px;border:1px solid rgba(255,255,255,0.08);padding:40px 32px;">
+                            
+                            <!-- Confirmation Badge -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding-bottom:24px;">
+                                        <div style="display:inline-block;background:linear-gradient(135deg,#FF2D95,#FF6B9D);color:#FFFFFF;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:8px 24px;border-radius:9999px;">✓ BOOKING CONFIRMED</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Greeting -->
+                            <p style="margin:0 0 16px;font-size:18px;color:#FFFFFF;font-weight:600;">
+                                Hey ${firstName} 👋
+                            </p>
+                            <p style="margin:0 0 28px;font-size:15px;color:#AEAEB2;line-height:1.6;">
+                                You're locked in. Your Bangkok Club Crawl booking is confirmed and paid.
+                            </p>
+
+                            <!-- Booking Details -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#2C2C2E;border-radius:12px;padding:24px;margin-bottom:28px;">
+                                <tr>
+                                    <td style="padding:24px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Date</td>
+                                                <td align="right" style="padding:6px 0;font-size:15px;color:#FFFFFF;font-weight:600;">${eventDate}</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:4px 0;"></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Guests</td>
+                                                <td align="right" style="padding:6px 0;font-size:15px;color:#FFFFFF;font-weight:600;">${pax} pax</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:4px 0;"></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Total Paid</td>
+                                                <td align="right" style="padding:6px 0;font-size:15px;color:#D4AF37;font-weight:600;">฿${totalPaid.toLocaleString()}</td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:4px 0;"></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Ref</td>
+                                                <td align="right" style="padding:6px 0;font-size:12px;color:#8E8E93;font-family:monospace;">${bookingId.slice(0, 8).toUpperCase()}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- What Happens Next -->
+                            <p style="margin:0 0 12px;font-size:15px;color:#FFFFFF;font-weight:600;">What happens next?</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding:8px 0;font-size:14px;color:#AEAEB2;line-height:1.5;">
+                                        <span style="color:#FF2D95;font-weight:600;">1.</span> On the day: We confirm the event by <strong style="color:#FFFFFF;">7 PM</strong>.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:8px 0;font-size:14px;color:#AEAEB2;line-height:1.5;">
+                                        <span style="color:#FF2D95;font-weight:600;">2.</span> You'll receive a <strong style="color:#FFFFFF;">WhatsApp group link</strong> with the meetup location.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:8px 0;font-size:14px;color:#AEAEB2;line-height:1.5;">
+                                        <span style="color:#FF2D95;font-weight:600;">3.</span> Our host guides the entire flow — just show up and enjoy the energy.
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding:28px 0 0;">
+                            <p style="margin:0 0 4px;font-size:12px;color:#8E8E93;">Questions? Reply to this email or message us on WhatsApp.</p>
+                            <p style="margin:0;font-size:11px;color:#555;letter-spacing:0.05em;">BEST Nightlife Thailand · Bangkok Club Crawl</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+}
+
+/**
+ * Generates the admin notification email body (plain text for fast scanning).
+ */
+function buildAdminNotificationText({ firstName, email, phone, eventDate, pax, paxBreakdown, totalPaid, discountCode, discountAmount, bookingId, stripeSessionId }) {
+    const breakdownStr = [paxBreakdown?.male ? `${paxBreakdown.male}M` : '', paxBreakdown?.female ? `${paxBreakdown.female}F` : ''].filter(Boolean).join(' + ');
+    const discountStr = discountCode ? `\nPromo: ${discountCode} (-฿${discountAmount})` : '';
+    return [
+        `🎉 New Paid Booking`,
+        ``,
+        `Guest: ${firstName}`,
+        `Email: ${email}`,
+        `Phone: ${phone}`,
+        `Date: ${eventDate}`,
+        `Pax: ${pax} (${breakdownStr})`,
+        `Total Paid: ฿${totalPaid.toLocaleString()}${discountStr}`,
+        ``,
+        `Booking ID: ${bookingId}`,
+        `Stripe Session: ${stripeSessionId}`
+    ].join('\n');
+}
 
 const app = express();
 
@@ -365,45 +540,52 @@ app.post('/api/stripe-webhook', async (req, res) => {
                             });
                     }
 
-                    // ——— 6. Fetch booking details for Zapier payload ———
+                    // ——— 6. Fetch booking details for email ———
                     const { data: bookingData } = await supabase
                         .from('bookings')
                         .select('quantity, pax_breakdown, total_price, discount_code, discount_amount, event_date')
                         .eq('id', bookingId)
                         .single();
 
-                    // ——— 7. Trigger Zapier Webhook ———
-                    const zapierUrl = process.env.ZAPIER_WEBHOOK_URL;
-                    if (zapierUrl && zapierUrl !== 'https://hooks.zapier.com/hooks/catch/PLACEHOLDER') {
-                        const zapierPayload = {
-                            trigger: 'booking_confirmed',
-                            booking_id: bookingId,
-                            guest_name: guestData.first_name,
-                            guest_email: guestData.email,
-                            guest_phone: guestData.phone,
-                            event_date: eventDate,
-                            event_date_formatted: formattedDate,
+                    // ——— 7A. Send GUEST CONFIRMATION EMAIL ———
+                    if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+                        const confirmationHTML = buildGuestConfirmationHTML({
+                            firstName: guestData.first_name,
+                            eventDate: formattedDate,
                             pax: bookingData?.quantity || 0,
-                            pax_breakdown: bookingData?.pax_breakdown || {},
-                            total_paid: bookingData?.total_price || 0,
-                            discount_code: bookingData?.discount_code || null,
-                            discount_amount: bookingData?.discount_amount || 0,
-                            stripe_session_id: session.id,
-                            payment_status: 'Paid'
-                        };
+                            totalPaid: bookingData?.total_price || 0,
+                            bookingId: bookingId
+                        });
 
-                        try {
-                            const zapierResponse = await fetch(zapierUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(zapierPayload)
-                            });
-                            console.log(`📧 Zapier webhook fired: ${zapierResponse.status}`);
-                        } catch (zapErr) {
-                            console.error('⚠️ Zapier webhook failed (non-blocking):', zapErr.message);
-                        }
+                        await sendEmail({
+                            to: guestData.email,
+                            subject: `Booking Confirmed! Bangkok Club Crawl — ${formattedDate} 🎉`,
+                            html: confirmationHTML,
+                            text: `Hey ${guestData.first_name}! Your Bangkok Club Crawl booking for ${formattedDate} (${bookingData?.quantity || 0} pax) is confirmed. Total paid: ฿${(bookingData?.total_price || 0).toLocaleString()}. You'll receive WhatsApp details on the day by 7 PM.`
+                        });
+
+                        // ——— 7B. Send ADMIN NOTIFICATION EMAIL ———
+                        const adminText = buildAdminNotificationText({
+                            firstName: guestData.first_name,
+                            email: guestData.email,
+                            phone: guestData.phone,
+                            eventDate: formattedDate,
+                            pax: bookingData?.quantity || 0,
+                            paxBreakdown: bookingData?.pax_breakdown,
+                            totalPaid: bookingData?.total_price || 0,
+                            discountCode: bookingData?.discount_code,
+                            discountAmount: bookingData?.discount_amount || 0,
+                            bookingId: bookingId,
+                            stripeSessionId: session.id
+                        });
+
+                        await sendEmail({
+                            to: ADMIN_EMAIL,
+                            subject: `New Booking: ${guestData.first_name} for ${formattedDate} — ${bookingData?.quantity || 0} pax`,
+                            text: adminText
+                        });
                     } else {
-                        console.log('⏭️ Zapier webhook URL not configured — skipping');
+                        console.log('⏭️ Email credentials not configured — skipping email notifications');
                     }
                 }
             }
@@ -481,15 +663,21 @@ app.get('/api/verify-session', async (req, res) => {
 
 // ——— Start Server ———
 app.listen(PORT, () => {
+    const emailReady = process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD && process.env.EMAIL_APP_PASSWORD !== 'YOUR_16_CHAR_APP_PASSWORD_HERE';
     console.log(`
-╔══════════════════════════════════════════════╗
-║  🌃 Bangkok Club Crawl — Booking Engine      ║
-║  Server running at http://localhost:${PORT}      ║
-║                                              ║
-║  Endpoints:                                  ║
-║    POST /api/create-checkout                 ║
-║    POST /api/stripe-webhook                  ║
-║    GET  /api/booking-status/:id              ║
-╚══════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════╗
+║  🌃 Bangkok Club Crawl — Booking Engine          ║
+║  Server running at http://localhost:${PORT}          ║
+║                                                  ║
+║  Endpoints:                                      ║
+║    POST /api/create-checkout                     ║
+║    POST /api/stripe-webhook                      ║
+║    GET  /api/booking-status/:id                  ║
+║                                                  ║
+║  Email (Nodemailer):                             ║
+║    Sender:  ${emailReady ? process.env.EMAIL_USER : '⏳ Not configured'}  ║
+║    Admin:   ${emailReady ? ADMIN_EMAIL : '⏳ Not configured'}  ║
+║    Status:  ${emailReady ? '✅ Ready' : '⏳ Paste App Password in .env'}              ║
+╚══════════════════════════════════════════════════╝
     `);
 });

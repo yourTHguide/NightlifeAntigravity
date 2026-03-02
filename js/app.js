@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initFeaturesGrid();
     initRoutePreview();
+    initHostsSection();
     initRitualsSection();
     initSocialProofSection();
     initFAQSection();
@@ -60,13 +61,13 @@ function initRoutePreview() {
             const wrapper = carousel.parentElement;
             carousel.innerHTML = route.map((stop, index) => `
                 <div class="route-card ${index === 0 ? 'active' : ''}" data-index="${index}">
-                    <video class="route-card-video" muted loop playsinline webkit-playsinline>
-                        <source src="${stop.video}" type="video/mp4">
-                    </video>
+                    <img class="route-card-image" src="${stop.image}" alt="${stop.venue}">
+                    <div class="route-card-overlay"></div>
                     <div class="route-card-content">
+                        <span class="route-music-capsule">${stop.music}</span>
+                        <h3 class="route-venue-title">${stop.venue}</h3>
                         <div class="stop-badge-container">
-                            <span class="stop-badge">${stop.stop}</span>
-                            <span class="click-indicator">↓</span>
+                            <span class="stop-badge-subtle">${stop.stop}</span>
                         </div>
                     </div>
                 </div>
@@ -81,15 +82,13 @@ function initRoutePreview() {
     function handleVideoPlayback() {
         const cards = carousel.querySelectorAll('.route-card');
         cards.forEach(card => {
-            const video = card.querySelector('video');
-            if (!video) return;
+            const img = card.querySelector('.route-card-image');
+            if (!img) return;
 
             if (card.classList.contains('active')) {
-                video.play().catch(e => console.log('Autoplay blocked:', e));
-                video.style.opacity = '1';
+                img.style.opacity = '1';
             } else {
-                video.pause();
-                video.style.opacity = '0.7';
+                img.style.opacity = '0.7';
             }
         });
     }
@@ -243,6 +242,85 @@ function initSocialProofSection() {
             <div class="elfsight-app-2a8f47e3-cd44-475c-a54d-5df650fcf6b7" data-elfsight-app-lazy></div>
         </div>
     `;
+}
+
+/**
+ * 👑 Initialize Hosts Section
+ */
+function initHostsSection() {
+    const accordion = document.getElementById('hosts-accordion');
+    if (!accordion || !BCC_DATA.hosts) return;
+
+    accordion.innerHTML = BCC_DATA.hosts.map((host, index) => `
+        <div class="host-accordion-item" data-index="${index}">
+            <div class="host-header">
+                <div class="host-portrait-small">
+                    <img src="${host.image}" alt="${host.name}">
+                </div>
+                <div class="host-info-brief">
+                    <h3 class="host-name">${host.name} <span class="verified-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L15 4.5L18.5 4L20 7.5L23 9.5L21.5 13L23 16.5L20 18.5L18.5 22L15 21.5L12 24L9 21.5L5.5 22L4 18.5L1 16.5L2.5 13L1 9.5L4 7.5L5.5 4L9 4.5L12 2Z" fill="#D4AF37"/>
+                            <path d="M10 16L6 12L7.4 10.6L10 13.2L16.6 6.6L18 8L10 16Z" fill="#111114"/>
+                        </svg>
+                    </span></h3>
+                    <span class="role-capsule">${host.role}</span>
+                    <p class="host-short-desc">"${host.shortDesc}"</p>
+                    <p class="host-stat-line"><span style="color:#D4AF37;">★</span> ${host.stats}</p>
+                </div>
+                <div class="host-expand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9L12 15L18 9" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="host-expanded-content">
+                <div class="host-expanded-inner">
+                    <div class="host-portrait-large">
+                        <img src="${host.image}" alt="${host.name}">
+                    </div>
+                    <p class="host-full-desc">${host.description}</p>
+                    <div class="host-skills">
+                        ${host.badges.map(badge => `<span class="skill-badge">${badge}</span>`).join('')}
+                    </div>
+                    <button class="btn host-action-btn">See ${host.name} In Action</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    const items = accordion.querySelectorAll('.host-accordion-item');
+
+    items.forEach(item => {
+        const header = item.querySelector('.host-header');
+
+        header.addEventListener('click', () => {
+            const isExpanded = item.classList.contains('expanded');
+
+            // Close all others
+            items.forEach(otherItem => {
+                otherItem.classList.remove('expanded');
+                const content = otherItem.querySelector('.host-expanded-content');
+                if (content) content.style.maxHeight = null;
+            });
+
+            if (!isExpanded) {
+                // Open this
+                item.classList.add('expanded');
+                const content = item.querySelector('.host-expanded-content');
+                // Calculate actual height needed
+                if (content) {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+
+                // Optional: scroll into view smoothly
+                setTimeout(() => {
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 300);
+            }
+        });
+    });
 }
 
 /**

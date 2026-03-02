@@ -16,3 +16,15 @@ npm-debug.log*
 # Misc
 *.log
 .env
+.vercel
+
+# macOS alias files
+Antigravity
+Antigravity alias*
+
+# Project docs (not for deployment)
+design_inspiration/
+findings.md
+nightlife_brain.md
+SKILL.md
+TASK_PLAN.md
