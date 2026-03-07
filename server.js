@@ -1033,5 +1033,248 @@ if (require.main === module) {
     });
 }
 
+// ═══════════════════════════════════════════════════
+//  🏛️ FOUNDER CONTROL PANEL — Admin API Routes
+//  Secured by Supabase Auth + HMAC session tokens
+// ═══════════════════════════════════════════════════
+
+const crypto = require('crypto');
+
+const FOUNDER_EMAIL = 'bestnightlifethailand@gmail.com';
+const TOKEN_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use as HMAC secret
+const TOKEN_EXPIRY_HOURS = 24;
+
+// --- Admin Token Helpers ---
+function createAdminToken(email) {
+    const payload = JSON.stringify({
+        email,
+        exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
+    });
+    const encoded = Buffer.from(payload).toString('base64url');
+    const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(encoded).digest('base64url');
+    return `${encoded}.${sig}`;
+}
+
+function verifyAdminToken(token) {
+    try {
+        const [encoded, sig] = token.split('.');
+        if (!encoded || !sig) return null;
+        const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(encoded).digest('base64url');
+        if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) return null;
+        const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString());
+        if (payload.exp < Date.now()) return null;
+        if (payload.email !== FOUNDER_EMAIL) return null;
+        return payload;
+    } catch {
+        return null;
+    }
+}
+
+// --- Admin Auth Middleware ---
+function adminAuth(req, res, next) {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const token = auth.replace('Bearer ', '');
+    const payload = verifyAdminToken(token);
+    if (!payload) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    req.adminEmail = payload.email;
+    next();
+}
+
+// ═══ POST /api/admin/login ═══
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        // Only allow founder email
+        if (email.toLowerCase() !== FOUNDER_EMAIL) {
+            console.log(`🚫 Admin login rejected: ${email}`);
+            return res.status(401).json({ error: 'Access denied. This panel is restricted to authorized personnel.' });
+        }
+
+        // Verify credentials via Supabase Auth
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            console.log(`🚫 Admin login failed for ${email}: ${error.message}`);
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        console.log(`✅ Admin login: ${email}`);
+        const token = createAdminToken(email.toLowerCase());
+
+        return res.json({
+            token,
+            email: data.user.email,
+            expires_in: TOKEN_EXPIRY_HOURS * 3600
+        });
+    } catch (err) {
+        console.error('❌ Admin login error:', err);
+        return res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+// ═══ GET /api/admin/events ═══
+// Returns upcoming events grouped by date with paid headcount
+app.get('/api/admin/events', adminAuth, async (req, res) => {
+    try {
+        // Get today's date in Bangkok time (UTC+7)
+        const now = new Date();
+        const bkkOffset = 7 * 60 * 60 * 1000;
+        const bkkNow = new Date(now.getTime() + bkkOffset);
+        const todayStr = bkkNow.toISOString().split('T')[0];
+
+        // Fetch all bookings with Paid status, from today onward
+        const { data: bookings, error } = await supabase
+            .from('bookings')
+            .select('event_date, quantity, total_price, payment_status')
+            .eq('payment_status', 'Paid')
+            .gte('event_date', todayStr)
+            .order('event_date', { ascending: true });
+
+        if (error) throw error;
+
+        // Group by date
+        const eventMap = {};
+        (bookings || []).forEach(b => {
+            const date = b.event_date;
+            if (!eventMap[date]) {
+                eventMap[date] = { date, paid_count: 0, total_revenue: 0 };
+            }
+            eventMap[date].paid_count += (b.quantity || 1);
+            eventMap[date].total_revenue += (b.total_price || 0);
+        });
+
+        // Also add upcoming Fri/Sat dates even if 0 bookings
+        for (let i = 0; i < 14; i++) {
+            const d = new Date(bkkNow.getTime() + i * 24 * 60 * 60 * 1000);
+            const day = d.getDay(); // 5=Fri, 6=Sat
+            if (day === 5 || day === 6) {
+                const ds = d.toISOString().split('T')[0];
+                if (!eventMap[ds]) {
+                    eventMap[ds] = { date: ds, paid_count: 0, total_revenue: 0 };
+                }
+            }
+        }
+
+        const events = Object.values(eventMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        return res.json({ events });
+    } catch (err) {
+        console.error('❌ Admin events error:', err);
+        return res.status(500).json({ error: 'Failed to load events' });
+    }
+});
+
+// ═══ GET /api/admin/guests ═══
+// Returns all guest profiles for CRM view
+app.get('/api/admin/guests', adminAuth, async (req, res) => {
+    try {
+        const { data: guests, error } = await supabase
+            .from('guests')
+            .select('id, first_name, last_name, email, phone, source, tags, nationality, gender, ota_booking_id, ota_platform, created_at, updated_at')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return res.json({ guests: guests || [] });
+    } catch (err) {
+        console.error('❌ Admin guests error:', err);
+        return res.status(500).json({ error: 'Failed to load guests' });
+    }
+});
+
+// ═══ GET /api/admin/kpis ═══
+// Auto-calculates core business metrics
+app.get('/api/admin/kpis', adminAuth, async (req, res) => {
+    try {
+        // Fetch all paid bookings
+        const { data: bookings, error: bErr } = await supabase
+            .from('bookings')
+            .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at')
+            .eq('payment_status', 'Paid');
+
+        if (bErr) throw bErr;
+
+        // Fetch all guests
+        const { data: guests, error: gErr } = await supabase
+            .from('guests')
+            .select('id, phone, source, tags');
+
+        if (gErr) throw gErr;
+
+        const paidBookings = bookings || [];
+        const allGuests = guests || [];
+
+        // --- Total Revenue ---
+        const totalRevenue = paidBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+        // --- Events with bookings ---
+        const eventDates = [...new Set(paidBookings.map(b => b.event_date))];
+        const totalEventsWithBookings = eventDates.length;
+
+        // --- Avg Revenue per Event ---
+        const avgRevenuePerEvent = totalEventsWithBookings > 0
+            ? Math.round(totalRevenue / totalEventsWithBookings)
+            : 0;
+
+        // --- Avg Guests per Event ---
+        const totalPax = paidBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
+        const avgGuestsPerEvent = totalEventsWithBookings > 0
+            ? (totalPax / totalEventsWithBookings)
+            : 0;
+
+        // --- Repeat Guest Rate ---
+        // A repeat guest is someone who has 2+ paid bookings on different event dates
+        const guestEventMap = {};
+        paidBookings.forEach(b => {
+            if (!b.guest_id) return;
+            if (!guestEventMap[b.guest_id]) guestEventMap[b.guest_id] = new Set();
+            guestEventMap[b.guest_id].add(b.event_date);
+        });
+
+        const uniqueBookedGuests = Object.keys(guestEventMap).length;
+        const repeatGuests = Object.values(guestEventMap).filter(dates => dates.size >= 2).length;
+        const repeatGuestRate = uniqueBookedGuests > 0
+            ? (repeatGuests / uniqueBookedGuests) * 100
+            : 0;
+
+        // --- Guests with Phone ---
+        const guestsWithPhone = allGuests.filter(g => g.phone && g.phone.trim().length > 0).length;
+
+        // --- Source Breakdown ---
+        const sourceBreakdown = {};
+        paidBookings.forEach(b => {
+            const src = b.booking_source || 'direct';
+            sourceBreakdown[src] = (sourceBreakdown[src] || 0) + 1;
+        });
+
+        return res.json({
+            total_revenue: totalRevenue,
+            total_paid_bookings: paidBookings.length,
+            total_events_with_bookings: totalEventsWithBookings,
+            avg_revenue_per_event: avgRevenuePerEvent,
+            avg_guests_per_event: avgGuestsPerEvent,
+            total_guests: allGuests.length,
+            guests_with_phone: guestsWithPhone,
+            repeat_guests: repeatGuests,
+            repeat_guest_rate: repeatGuestRate,
+            source_breakdown: sourceBreakdown
+        });
+    } catch (err) {
+        console.error('❌ Admin KPIs error:', err);
+        return res.status(500).json({ error: 'Failed to calculate KPIs' });
+    }
+});
+
+
 // Export for Vercel serverless
 module.exports = app;
