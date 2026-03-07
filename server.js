@@ -1,9 +1,12 @@
 /**
  * 🚀 Bangkok Club Crawl — Booking Engine Server
  * 
- * Two endpoints:
- *   POST /api/create-checkout  → Guest upsert + Pending booking + Stripe Checkout
- *   POST /api/stripe-webhook   → Payment verification + Tag management + Email notifications
+ * Endpoints:
+ *   POST /api/create-checkout     → Guest upsert + Pending booking + Stripe Checkout
+ *   POST /api/stripe-webhook      → Payment verification + Tag management + Email notifications
+ *   POST /api/webhooks/bokun      → OTA webhook: Bokun booking notifications
+ *   GET  /api/booking-status/:id  → Booking status lookup
+ *   GET  /api/verify-session      → Stripe session verification for success page
  * 
  * Also serves the static frontend on all other routes.
  */
@@ -661,6 +664,351 @@ app.get('/api/verify-session', async (req, res) => {
 });
 
 
+
+// ═══════════════════════════════════════════════════
+//  POST /api/webhooks/bokun
+//  Bokun OTA sends HTTP Booking notifications here
+//  Follows data-schema-rules Workspace Skill strictly:
+//    Rule 1: Only touches Guest + Booking (core entities)
+//    Rule 2: Minimum Data Rule (phone/OTA-ID + event_date + payment_status)
+//    Rule 3: One Guest, One Profile (phone-first upsert)
+//    Rule 4: Tagging (OTA-Booked tag applied)
+//    Rule 5: OTA Fallback (Bokun ID when phone missing)
+// ═══════════════════════════════════════════════════
+app.post('/api/webhooks/bokun', async (req, res) => {
+    console.log('📥 Bokun webhook received');
+
+    // ——— 1. Authenticate: Verify BOKUN_API_KEY ———
+    // Accepts the key via: Authorization: Bearer <key>, x-api-key header, or ?api_key= query param
+    const expectedKey = process.env.BOKUN_API_KEY;
+
+    if (!expectedKey) {
+        console.error('❌ Bokun webhook: BOKUN_API_KEY not configured in environment');
+        return res.status(500).json({ error: 'Webhook authentication not configured' });
+    }
+
+    const authHeader = req.headers['authorization'] || '';
+    const xApiKey = req.headers['x-api-key'] || '';
+    const queryKey = req.query.api_key || '';
+
+    const providedKey =
+        (authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '') ||
+        xApiKey ||
+        queryKey;
+
+    if (!providedKey || providedKey !== expectedKey) {
+        console.error('❌ Bokun webhook: Invalid or missing API key');
+        return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
+    }
+
+    try {
+        // ——— 2. Extract Bokun Booking ID ———
+        // Bokun sends x-bokun-booking-id in headers; also may be in the body
+        const bokunBookingId =
+            req.headers['x-bokun-booking-id'] ||
+            req.body?.bookingId ||
+            req.body?.booking_id ||
+            req.body?.confirmationCode ||
+            req.body?.id;
+
+        if (!bokunBookingId) {
+            console.error('❌ Bokun webhook: No booking ID found in headers or body');
+            return res.status(400).json({ error: 'Missing booking identifier (x-bokun-booking-id header or bookingId in body)' });
+        }
+
+        const bokunId = String(bokunBookingId);
+        console.log(`📋 Bokun Booking ID: ${bokunId}`);
+
+        // ——— 3. Extract Guest & Booking Data from Payload ———
+        const body = req.body || {};
+
+        // Bokun payloads can vary — extract what's available
+        // Support nested customer/contact objects common in Bokun
+        const customer = body.customer || body.contact || body.mainContact || body.leadCustomer || {};
+
+        const firstName = customer.firstName || customer.first_name || body.firstName || body.first_name || null;
+        const lastName = customer.lastName || customer.last_name || body.lastName || body.last_name || null;
+        const email = customer.email || body.email || null;
+        const rawPhone = customer.phone || customer.phoneNumber ||
+            customer.phone_number || customer.mobile ||
+            body.phone || body.phoneNumber || body.phone_number || null;
+        const nationality = customer.nationality || customer.country || body.nationality || null;
+
+        // Event date: Bokun uses various field names
+        const rawEventDate = body.startDate || body.event_date || body.date ||
+            body.activityDate || body.start_date ||
+            body.startTime || body.departure_date || null;
+
+        // Quantity / pax
+        const quantity = parseInt(body.totalParticipants || body.participants ||
+            body.pax || body.quantity || body.totalGuests || 1) || 1;
+
+        // Total price from OTA (they handle payment)
+        const totalPrice = parseFloat(body.totalPrice || body.total_price ||
+            body.totalAmount || body.amount || 0) || 0;
+
+        // ——— 4. Normalize Phone to E.164 (Rule 3) ———
+        let normalizedPhone = null;
+        if (rawPhone) {
+            // Strip all non-digit/plus chars
+            let cleaned = String(rawPhone).replace(/[^\d+]/g, '');
+            // If starts with 0 (Thai local), convert to +66
+            if (cleaned.startsWith('0') && cleaned.length >= 9) {
+                cleaned = '+66' + cleaned.slice(1);
+            }
+            // Ensure + prefix
+            if (!cleaned.startsWith('+') && cleaned.length >= 10) {
+                cleaned = '+' + cleaned;
+            }
+            // Basic validation: must be at least 10 digits
+            if (cleaned.replace(/\D/g, '').length >= 10) {
+                normalizedPhone = cleaned;
+            }
+        }
+
+        // ——— 5. Parse Event Date ———
+        let eventDate = null;
+        if (rawEventDate) {
+            const parsed = new Date(rawEventDate);
+            if (!isNaN(parsed.getTime())) {
+                // Format as YYYY-MM-DD
+                eventDate = parsed.toISOString().split('T')[0];
+            }
+        }
+
+        // ——— 6. Validate Minimum Data Rule (Rule 2) ———
+        // Requirement: phone OR OTA identifier + event_date + payment_status
+        const hasIdentifier = normalizedPhone || bokunId;
+        if (!hasIdentifier) {
+            console.error('❌ Bokun webhook: Minimum Data Rule violation — no phone and no Bokun ID');
+            return res.status(400).json({
+                error: 'Minimum Data Rule: Guest must have a phone number or OTA booking ID'
+            });
+        }
+        if (!eventDate) {
+            console.error('❌ Bokun webhook: Minimum Data Rule violation — no event date');
+            return res.status(400).json({
+                error: 'Minimum Data Rule: Event date is required'
+            });
+        }
+        // payment_status defaults to 'Paid' for OTA bookings (OTA handles payment)
+
+        console.log(`📊 Bokun data parsed — Phone: ${normalizedPhone || 'N/A'} | Date: ${eventDate} | Pax: ${quantity}`);
+
+        // ——— 7. Check for Duplicate Booking (idempotency) ———
+        const { data: existingBooking } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('ota_booking_id', bokunId)
+            .single();
+
+        if (existingBooking) {
+            console.log(`⏭️ Bokun booking ${bokunId} already exists as ${existingBooking.id} — skipping`);
+            return res.json({
+                received: true,
+                status: 'duplicate',
+                message: 'Booking already processed',
+                booking_id: existingBooking.id
+            });
+        }
+
+        // ——— 8. Upsert Guest Profile (Rules 3 & 5) ———
+        let guestId;
+        let isNewGuest = false;
+
+        if (normalizedPhone) {
+            // Phone-first matching (Rule 3: phone is primary key)
+            const { data: existingGuest } = await supabase
+                .from('guests')
+                .select('id, tags')
+                .eq('phone', normalizedPhone)
+                .single();
+
+            if (existingGuest) {
+                // UPDATE existing guest (COALESCE — don't overwrite with nulls)
+                guestId = existingGuest.id;
+                const updateFields = { updated_at: new Date().toISOString() };
+                if (firstName) updateFields.first_name = firstName;
+                if (lastName) updateFields.last_name = lastName;
+                if (email) updateFields.email = email;
+                if (nationality) updateFields.nationality = nationality;
+                // Always update source to latest OTA
+                updateFields.source = 'bokun';
+                updateFields.ota_booking_id = bokunId;
+
+                await supabase.from('guests').update(updateFields).eq('id', guestId);
+                console.log(`👤 Existing guest updated: ${guestId}`);
+            } else {
+                // INSERT new guest with phone
+                isNewGuest = true;
+                const { data: newGuest, error: guestError } = await supabase
+                    .from('guests')
+                    .insert({
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        phone: normalizedPhone,
+                        nationality: nationality,
+                        source: 'bokun',
+                        ota_booking_id: bokunId,
+                        tags: ['OTA-Booked'],
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .select('id')
+                    .single();
+
+                if (guestError) {
+                    console.error('❌ Guest creation failed:', guestError);
+                    return res.status(500).json({ error: 'Failed to create guest profile' });
+                }
+                guestId = newGuest.id;
+                console.log(`👤 New guest created (with phone): ${guestId}`);
+            }
+        } else {
+            // OTA Fallback (Rule 5): No phone — use Bokun ID as unique identifier
+            // Check if a guest already exists with this OTA booking ID
+            const { data: existingOtaGuest } = await supabase
+                .from('guests')
+                .select('id, tags')
+                .eq('ota_booking_id', bokunId)
+                .single();
+
+            if (existingOtaGuest) {
+                guestId = existingOtaGuest.id;
+                const updateFields = { updated_at: new Date().toISOString() };
+                if (firstName) updateFields.first_name = firstName;
+                if (lastName) updateFields.last_name = lastName;
+                if (email) updateFields.email = email;
+                if (nationality) updateFields.nationality = nationality;
+                updateFields.source = 'bokun';
+
+                await supabase.from('guests').update(updateFields).eq('id', guestId);
+                console.log(`👤 Existing OTA guest updated: ${guestId}`);
+            } else {
+                // INSERT new guest WITHOUT phone (OTA Fallback — email is optional)
+                isNewGuest = true;
+                const { data: newGuest, error: guestError } = await supabase
+                    .from('guests')
+                    .insert({
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,     // Strictly optional (Rule 5)
+                        phone: null,      // Will be attached later via WhatsApp
+                        nationality: nationality,
+                        source: 'bokun',
+                        ota_booking_id: bokunId,
+                        tags: ['OTA-Booked', 'Missing Phone'],
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .select('id')
+                    .single();
+
+                if (guestError) {
+                    console.error('❌ Guest creation (OTA fallback) failed:', guestError);
+                    return res.status(500).json({ error: 'Failed to create guest profile' });
+                }
+                guestId = newGuest.id;
+                console.log(`👤 New guest created (OTA fallback, no phone): ${guestId}`);
+            }
+        }
+
+        // ——— 9. Apply Tags (Rule 4) ———
+        const { data: guestForTags } = await supabase
+            .from('guests')
+            .select('tags')
+            .eq('id', guestId)
+            .single();
+
+        let tags = guestForTags?.tags || [];
+
+        // Add date-specific temporary tag
+        const formattedDate = new Date(eventDate).toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'short', year: 'numeric'
+        });
+        const bookedTag = `Booked — ${formattedDate}`;
+        if (!tags.includes(bookedTag)) tags.push(bookedTag);
+
+        // Add OTA identifier tag (permanent)
+        if (!tags.includes('OTA-Booked')) tags.push('OTA-Booked');
+
+        // Remove 'Interested' if present (they've booked now)
+        tags = tags.filter(t => t !== 'Interested');
+
+        await supabase.from('guests').update({ tags }).eq('id', guestId);
+
+        // ——— 10. Create Booking Record (Rules 1 & 2) ———
+        const { data: booking, error: bookingError } = await supabase
+            .from('bookings')
+            .insert({
+                guest_id: guestId,
+                first_name: firstName,
+                email: email,
+                whatsapp_number: normalizedPhone,
+                event_date: eventDate,
+                quantity: quantity,
+                total_price: totalPrice,
+                payment_status: 'Paid',       // OTA handles payment
+                booking_source: 'bokun',
+                ota_booking_id: bokunId,
+                created_at: new Date().toISOString()
+            })
+            .select('id')
+            .single();
+
+        if (bookingError) {
+            console.error('❌ Booking creation failed:', bookingError);
+            return res.status(500).json({ error: 'Failed to create booking record' });
+        }
+
+        console.log(`✅ Bokun booking processed: ${booking.id} | Guest: ${guestId} | Date: ${eventDate} | Pax: ${quantity}`);
+
+        // ——— 11. Admin Notification Email ———
+        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+            const adminText = [
+                `📥 New OTA Booking (Bokun)`,
+                ``,
+                `Guest: ${firstName || 'Unknown'} ${lastName || ''}`.trim(),
+                `Email: ${email || 'Not provided'}`,
+                `Phone: ${normalizedPhone || '⚠️ Missing — needs WhatsApp collection'}`,
+                `Date: ${formattedDate}`,
+                `Pax: ${quantity}`,
+                `Total: ฿${totalPrice.toLocaleString() || 'N/A'}`,
+                ``,
+                `Bokun ID: ${bokunId}`,
+                `Booking ID: ${booking.id}`,
+                `Guest ID: ${guestId}`,
+                normalizedPhone ? '' : `\n⚠️ ACTION NEEDED: Collect phone number when guest joins WhatsApp group.`
+            ].filter(line => line !== undefined).join('\n');
+
+            await sendEmail({
+                to: ADMIN_EMAIL,
+                subject: `OTA Booking: ${firstName || 'Guest'} for ${formattedDate} — ${quantity} pax (Bokun)`,
+                text: adminText
+            });
+        }
+
+        // ——— 12. Success Response ———
+        return res.json({
+            received: true,
+            status: 'success',
+            booking_id: booking.id,
+            guest_id: guestId,
+            is_new_guest: isNewGuest,
+            phone_collected: !!normalizedPhone
+        });
+
+    } catch (err) {
+        console.error('❌ Bokun webhook processing error:', err);
+        return res.status(500).json({
+            error: 'Webhook processing failed',
+            message: err.message
+        });
+    }
+});
+
+
 // ——— Start Server (local dev only — Vercel uses module.exports) ———
 if (require.main === module) {
     app.listen(PORT, () => {
@@ -673,6 +1021,7 @@ if (require.main === module) {
 ║  Endpoints:                                      ║
 ║    POST /api/create-checkout                     ║
 ║    POST /api/stripe-webhook                      ║
+║    POST /api/webhooks/bokun                      ║
 ║    GET  /api/booking-status/:id                  ║
 ║                                                  ║
 ║  Email (Nodemailer):                             ║
