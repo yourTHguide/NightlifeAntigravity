@@ -28,7 +28,9 @@ const supabase = createClient(
 
 const PRICES = {
     male: process.env.STRIPE_PRICE_MALE,
-    female: process.env.STRIPE_PRICE_FEMALE
+    female: process.env.STRIPE_PRICE_FEMALE,
+    thursday_male: process.env.STRIPE_PRICE_THURSDAY_MALE,
+    thursday_female: process.env.STRIPE_PRICE_THURSDAY_FEMALE
 };
 
 const PORT = process.env.PORT || 3000;
@@ -225,7 +227,7 @@ app.use(express.static(path.join(__dirname)));
 // ═══════════════════════════════════════════════════
 app.post('/api/create-checkout', async (req, res) => {
     try {
-        const { guest, event_date, pax, promo_code } = req.body;
+        const { guest, event_date, pax, promo_code, event_day } = req.body;
 
         // ——— 1. Validate Input ———
         if (!guest?.first_name || !guest?.phone || !guest?.email) {
@@ -247,10 +249,25 @@ app.post('/api/create-checkout', async (req, res) => {
         const femaleCount = parseInt(pax.female) || 0;
         const totalPax = maleCount + femaleCount;
 
-        // ——— 2. Server-side Price Calculation ———
-        const MALE_PRICE = 1500;
-        const FEMALE_PRICE = 1200;
+        // ——— 2. Detect Event Day & Server-side Price Calculation ———
+        // Determine if this is a Thursday booking:
+        //   - Frontend sends event_day ('4' = Thursday) as explicit signal
+        //   - Fallback: derive day-of-week from event_date string
+        let isThursday = false;
+        if (event_day === '4' || event_day === 'Thursday') {
+            isThursday = true;
+        } else {
+            const parsedDate = new Date(event_date + 'T12:00:00'); // noon to avoid timezone issues
+            if (!isNaN(parsedDate.getTime()) && parsedDate.getDay() === 4) { // 4 = Thursday
+                isThursday = true;
+            }
+        }
+
+        const MALE_PRICE = isThursday ? 1200 : 1500;
+        const FEMALE_PRICE = isThursday ? 1000 : 1200;
         let subtotal = (maleCount * MALE_PRICE) + (femaleCount * FEMALE_PRICE);
+
+        console.log(`🗓️ Event: ${event_date} | Day: ${isThursday ? 'Thursday' : 'Fri/Sat'} | Pricing: M=${MALE_PRICE} F=${FEMALE_PRICE}`);
         let discountAmount = 0;
         let validatedPromoCode = null;
 
@@ -354,17 +371,20 @@ app.post('/api/create-checkout', async (req, res) => {
 
         console.log(`📋 Booking created: ${booking.id} | Guest: ${guestId} | Total: ฿${totalAmount}`);
 
-        // ——— 6. Build Stripe Checkout Line Items ———
+        // ——— 6. Build Stripe Checkout Line Items (Thursday vs Fri/Sat routing) ———
+        const malePriceId = isThursday ? PRICES.thursday_male : PRICES.male;
+        const femalePriceId = isThursday ? PRICES.thursday_female : PRICES.female;
+
         const lineItems = [];
         if (maleCount > 0) {
             lineItems.push({
-                price: PRICES.male,
+                price: malePriceId,
                 quantity: maleCount
             });
         }
         if (femaleCount > 0) {
             lineItems.push({
-                price: PRICES.female,
+                price: femalePriceId,
                 quantity: femaleCount
             });
         }
@@ -397,6 +417,9 @@ app.post('/api/create-checkout', async (req, res) => {
                 booking_id: booking.id,
                 guest_id: guestId,
                 event_date: event_date,
+                event_type: isThursday ? 'social_night' : 'club_crawl',
+                phone: guest.phone,
+                payment_status: 'Pending',
                 promo_code: validatedPromoCode || ''
             },
             success_url: `${CLIENT_URL}/booking-success.html?session_id={CHECKOUT_SESSION_ID}`,
@@ -1022,6 +1045,7 @@ if (require.main === module) {
 ║    POST /api/create-checkout                     ║
 ║    POST /api/stripe-webhook                      ║
 ║    POST /api/webhooks/bokun                      ║
+║    POST /api/omnichannel-chat                    ║
 ║    GET  /api/booking-status/:id                  ║
 ║                                                  ║
 ║  Email (Nodemailer):                             ║
@@ -1272,6 +1296,666 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     } catch (err) {
         console.error('❌ Admin KPIs error:', err);
         return res.status(500).json({ error: 'Failed to calculate KPIs' });
+    }
+});
+
+
+// ═══════════════════════════════════════════════════
+//  POST /api/omnichannel-chat
+//  Unified webhook endpoint for n8n omnichannel messaging
+//  Handles: WhatsApp, Instagram DM, Facebook Messenger
+//  Flow: n8n → this endpoint → AI response → n8n → user
+// ═══════════════════════════════════════════════════
+
+// --- In-Memory Chat Session Store ---
+// Key: unique user identifier (phone or handle), Value: session state
+// In production, migrate to Supabase table for persistence
+const chatSessions = {};
+const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours TTL
+
+function getOrCreateSession(userKey) {
+    if (chatSessions[userKey] && (Date.now() - chatSessions[userKey].lastActivity < SESSION_TTL_MS)) {
+        chatSessions[userKey].lastActivity = Date.now();
+        return chatSessions[userKey];
+    }
+    chatSessions[userKey] = {
+        stage: 'warm_entry',
+        dateConfirmed: null,
+        groupType: null,
+        groupSize: null,
+        objectionsRaised: [],
+        bookingLinkSent: false,
+        messageCount: 0,
+        escalated: false,
+        lastActivity: Date.now(),
+        createdAt: Date.now()
+    };
+    return chatSessions[userKey];
+}
+
+// Periodic cleanup of expired sessions
+setInterval(() => {
+    const now = Date.now();
+    for (const key of Object.keys(chatSessions)) {
+        if (now - chatSessions[key].lastActivity > SESSION_TTL_MS) {
+            delete chatSessions[key];
+        }
+    }
+}, 30 * 60 * 1000); // Clean every 30 minutes
+
+// --- Sales Agent Logic (Server-Side Port) ---
+// This is the full Date-First Sales Methodology engine
+
+const ESCALATION_KEYWORDS = {
+    large_group: ['corporate', 'company event', 'team building', 'birthday', 'bachelor', 'bachelorette', 'hen party', 'stag', 'special event', 'private event', 'private party', 'custom'],
+    angry_tone: ['fuck', 'shit', 'bullshit', 'scam', 'terrible', 'disgusting', 'worst', 'horrible', 'awful', 'rip off', 'ripoff', 'rip-off'],
+    legal_language: ['lawyer', 'attorney', 'sue', 'lawsuit', 'legal action', 'court', 'consumer protection', 'report you'],
+    refund_conflict: ['chargeback', 'dispute charge', 'charge back', 'want my money back', 'demand refund', 'stolen money'],
+    influencer_media: ['influencer', 'content creator', 'youtube', 'youtuber', 'media', 'press', 'journalist', 'review us', 'collab', 'collaboration', 'followers', '10k', '100k', 'tiktok']
+};
+
+const CONFIDENTIAL_TOPICS = {
+    venues: ['iron balls', 'lennon', 'sing sing', 'chupa', 'levels', 'bobo', 'pastel', '1826'],
+    margins: ['profit', 'margin', 'commission', 'how much do you make', 'what do you earn'],
+    ratios: ['gender ratio', 'male female ratio', 'how many guys', 'how many girls', 'ratio', 'boy girl'],
+    host_pay: ['host salary', 'host commission', 'how much hosts make', 'host pay', 'host earn']
+};
+
+function detectEscalationServer(text) {
+    const lower = text.toLowerCase();
+    for (const [reason, keywords] of Object.entries(ESCALATION_KEYWORDS)) {
+        for (const keyword of keywords) {
+            if (lower.includes(keyword)) return reason;
+        }
+    }
+    const groupMatch = lower.match(/(\d+)\s*(people|persons|guests|friends|of us|pax|group)/);
+    if (groupMatch && parseInt(groupMatch[1]) >= 6) return 'large_group';
+    const groupOfMatch = lower.match(/group\s*(of)?\s*(\d+)/);
+    if (groupOfMatch && parseInt(groupOfMatch[2]) >= 6) return 'large_group';
+    return null;
+}
+
+function detectConfidentialServer(text) {
+    const lower = text.toLowerCase();
+    for (const [topic, keywords] of Object.entries(CONFIDENTIAL_TOPICS)) {
+        for (const keyword of keywords) {
+            if (lower.includes(keyword)) return topic;
+        }
+    }
+    return null;
+}
+
+function detectDateIntentServer(text) {
+    const lower = text.toLowerCase();
+    if (lower.includes('friday') && (lower.includes('this') || lower.includes('coming') || lower.includes('next') || !lower.includes('not'))) return 'this_friday';
+    if (lower.includes('saturday') && (lower.includes('this') || lower.includes('coming') || lower.includes('next') || !lower.includes('not'))) return 'this_saturday';
+    if (lower.includes('tonight') || lower.includes('today')) {
+        const today = new Date().getDay();
+        if (today === 5) return 'this_friday';
+        if (today === 6) return 'this_saturday';
+        return 'unsure';
+    }
+    if (lower.includes('this weekend') || lower.includes('this week')) return 'this_friday';
+    if (lower.match(/^(yes|yeah|yep|sure)\b/)) return 'this_friday';
+    if (lower.match(/next\s*(month|week|year)/) || lower.includes('later') || lower.includes('planning') || lower.includes('future')) return 'future';
+    if (lower.includes('not sure') || lower.includes('maybe') || lower.includes('unsure') || lower.includes("don't know") || lower.includes('thinking')) return 'unsure';
+    return null;
+}
+
+function detectGroupInfoServer(text) {
+    const lower = text.toLowerCase();
+    if (lower.includes('solo') || lower.includes('alone') || lower.includes('by myself') || lower.includes('just me') || lower.match(/\b1\s*(person|pax|guest)\b/)) return { type: 'solo', size: 1 };
+    if (lower.includes('couple') || lower.includes('two of us') || lower.includes('2 of us') || lower.includes('me and my') || lower.includes('partner')) return { type: 'couple', size: 2 };
+    const numMatch = lower.match(/(\d+)\s*(people|persons|guests|friends|of us|pax|mates|buddies)/);
+    if (numMatch) {
+        const size = parseInt(numMatch[1]);
+        if (size >= 8) return { type: 'large_group', size };
+        if (size >= 3) return { type: 'small_group', size };
+        if (size === 2) return { type: 'couple', size };
+        return { type: 'solo', size: 1 };
+    }
+    return null;
+}
+
+function detectIntentServer(text) {
+    const lower = text.toLowerCase();
+    if (lower.match(/^(hi|hello|hey|hiya|yo|sup|what's up|hola|good\s*(morning|evening|afternoon)|greetings)/)) return 'greeting';
+    if (lower.match(/(book|reserve|sign up|join|register|sign me up|how do i join|how to book|i want to come|i want in|count me in)/)) return 'booking_request';
+    if (lower.match(/(price|cost|how much|fee|charge|expensive|cheap|worth|pay|payment|money|afford|budget|thb|baht|฿)/)) return 'price_objection';
+    if (lower.match(/(solo|alone|by myself|just me|single|no friends|don't know anyone|lonely|nervous|scared|anxious|worried|shy)/)) return 'solo_concern';
+    if (lower.match(/(safe|safety|security|danger|secure|women|female|girl|lady|ladies|trust|worried|concern|sketchy|dodgy|legit)/)) return 'safety_concern';
+    if (lower.match(/(pub crawl|bar crawl|bar hop|backpacker|party bus|drinking tour|booze|drunk|wasted|smashed|hammered)/)) return 'pub_crawl_confusion';
+    if (lower.match(/(don't drink|non.?drinker|sober|no alcohol|teetotal|not a drinker|just about drinking)/)) return 'drinking_concern';
+    if (lower.match(/(dress|wear|outfit|dress code|smart casual|flip.?flop|shorts|cloth|attire|what should i wear)/)) return 'dress_code';
+    if (lower.match(/(which club|which venue|where do we go|what clubs|what bars|venue list|where exactly|which place|name.*club|club.*name)/)) return 'venue_inquiry';
+    if (lower.match(/(when|what day|what night|which night|schedule|which day|friday|saturday|weekend|date|available|availability|upcoming)/)) return 'date_check';
+    if (lower.match(/(what.*(include|included|get|receive|come with)|include|included|what do i get|what's in|what is in)/)) return 'whats_included';
+    if (lower.match(/(refund|cancel|cancellation|money back|get back|return|change date|reschedule|postpone)/)) return 'refund_inquiry';
+    if (lower.match(/(confirm|confirmation|guaranteed|will it happen|minimum|enough people|cancelled|cancel event)/)) return 'confirmation_inquiry';
+    if (lower.match(/(how does it work|what happens|how it works|tell me more|explain|what is this|what.*about|describe)/)) return 'general_inquiry';
+    if (lower.match(/(where.*meet|meeting point|meetup|meet up|pickup|pick up|location|where do we start|starting point)/)) return 'meetup_inquiry';
+    if (lower.match(/(what time|when.*start|when.*end|how long|duration|hours|finish|start time|end time)/)) return 'time_inquiry';
+    if (lower.match(/(thank|thanks|cheers|appreciate|bye|goodbye|see you|take care|great|awesome|cool|perfect|sounds good)/)) return 'positive_closing';
+    return 'general';
+}
+
+// BOOKING_URL — used in text responses for messaging platforms (no HTML)
+const BOOKING_URL = 'https://www.bkkclubcrawl.com/#booking';
+
+function getEscalationResponseServer(reason) {
+    switch (reason) {
+        case 'large_group':
+            return "For groups of 6 or more, we offer tailored experiences. I'll connect you with our team directly — they'll sort out the best setup for your crew.\n\n📩 Reach out to us at: info@bestnightlifethailand.com\n\nThey'll get back to you within a few hours.";
+        case 'angry_tone':
+            return "I understand your frustration, and I want to make sure this gets handled properly. I'm connecting you with our team lead who can address this directly.\n\n📩 Please email: info@bestnightlifethailand.com\n\nSomeone will respond to you promptly.";
+        case 'legal_language':
+            return "I take this seriously. For matters like this, I need to connect you with our management team directly.\n\n📩 Please contact: info@bestnightlifethailand.com\n\nThey'll address your concern properly.";
+        case 'refund_conflict':
+            return "I understand. Refund requests are handled by our team to make sure you're taken care of properly.\n\n📩 Please email: info@bestnightlifethailand.com with your booking reference.\n\nThey'll review your case and get back to you.";
+        case 'influencer_media':
+            return "We'd love to explore that. For media and collaboration inquiries, our team handles those directly.\n\n📩 Reach out to: info@bestnightlifethailand.com\n\nThey'll connect with you to discuss the details.";
+        default:
+            return "This is something I'll need to pass to our team. They'll be able to help you directly.\n\n📩 Email: info@bestnightlifethailand.com";
+    }
+}
+
+function getConfidentialResponseServer(topic) {
+    switch (topic) {
+        case 'venues':
+            return "We visit premium venues across Sukhumvit — each selected for atmosphere, music, and energy. The lineup is curated to create a deliberate flow, building from social warmup to peak energy.\n\nWe keep the exact lineup flexible to adapt to the night. That's part of what makes it curated, not a fixed checklist.";
+        case 'margins':
+        case 'host_pay':
+            return "I appreciate the curiosity, but I can't share specifics on internal operations. What I can tell you is that the ฿1,500 covers a premium experience — 4 venues, VIP entry, hosts, transport, and drinks.\n\nAnything else I can help with?";
+        case 'ratios':
+            return "The group is always a curated, international mix. We focus on creating the right social energy rather than hitting specific numbers. The crowd is diverse, social, and well-matched.\n\nAnything else on your mind?";
+        default:
+            return "I appreciate the question, but I'm not able to share those details. Happy to help with anything about the experience itself though.";
+    }
+}
+
+function handleIntentAtAnyStageServer(session, intent, text) {
+    switch (intent) {
+        case 'price_objection':
+            if (!session.objectionsRaised.includes('price')) session.objectionsRaised.push('price');
+            return "The experience is ฿1,500 per person. That includes:\n\n• 4 premium Sukhumvit venues\n• VIP / priority entry\n• Dedicated hosts managing the flow\n• Transport between stops\n• Welcome drinks\n\nIt's not just venue entry — it's structured access. The night is designed to escalate naturally, with a host guiding every transition.\n\nWorth it? Our guests consistently rate us 5 stars.";
+        case 'solo_concern':
+            if (!session.objectionsRaised.includes('solo')) session.objectionsRaised.push('solo');
+            session.groupType = 'solo';
+            session.groupSize = 1;
+            return "Most of our guests arrive solo — it's actually the most common way people join. The night is intentionally structured to break the ice from the very first venue.\n\nOur hosts are there to guide the social energy, introduce people naturally, and keep the momentum building. You'll arrive alone and leave with a crew.\n\nNo awkward standing around. That's the whole point.";
+        case 'safety_concern':
+            if (!session.objectionsRaised.includes('safety')) session.objectionsRaised.push('safety');
+            return "Safety and comfort are core to what we do. Our dedicated hosts are with the group the entire night — managing the vibe, the transitions, and the energy.\n\nIt's high-energy but always controlled. We design the atmosphere — we don't leave it to chance. Our crowd is international, respectful, and curated.";
+        case 'pub_crawl_confusion':
+            if (!session.objectionsRaised.includes('pub_crawl')) session.objectionsRaised.push('pub_crawl');
+            return "We get that question — but this isn't a pub crawl. No matching t-shirts, no beer pong, no backpacker chaos.\n\nBangkok Club Crawl is a structured nightlife experience. Think: curated venues, intentional escalation, dedicated hosts, and smooth transport. Every stop is chosen for energy and flow.\n\nIt's guided spontaneity — not random bar hopping.";
+        case 'drinking_concern':
+            if (!session.objectionsRaised.includes('drinking')) session.objectionsRaised.push('drinking');
+            return "This isn't a drinking tour. While welcome drinks are included, the night is really about connection, energy, and flow.\n\nPlenty of guests don't drink heavily — the experience is designed around social momentum, not alcohol. You'll enjoy it either way.";
+        case 'dress_code':
+            return "Dress code is smart casual. Clean and styled — think: jeans or chinos, a nice shirt or top, clean shoes.\n\nAvoid flip-flops, sports shorts, or sleeveless athletic wear. You don't need to overdress — just look intentional.";
+        case 'venue_inquiry':
+            return "We visit premium venues across Sukhumvit — each chosen for energy, music, and atmosphere. The route is curated to build momentum, moving from social warmup to full peak.\n\nWe keep the specific lineup flexible because we adapt based on the night's energy and crowd. That's part of what makes it curated, not a fixed checklist.";
+        case 'whats_included':
+            return "Here's what's included:\n\n• 4 curated Sukhumvit venues\n• VIP / priority entry at each stop\n• Dedicated hosts guiding the flow\n• Transport between venues\n• Welcome drinks at select stops\n• An international, curated crowd\n\nThe night is designed to escalate — from a social spark to full energy.";
+        case 'time_inquiry':
+            return "The night kicks off at 9:30 PM. We move through 4 venues, with the last stop usually wrapping between 2–3 AM depending on the group's energy.\n\nPlan for a full night out.";
+        case 'refund_inquiry':
+            return "Our refund policy is straightforward:\n\n• Same-day cancellations: non-refundable\n• No-shows: non-refundable\n• If we cancel the event, you'll be offered a reschedule or full refund immediately\n\nFor any specific situation, you can reach out to our team directly.";
+        case 'confirmation_inquiry':
+            return "We run every Friday and Saturday. Events are confirmed by 7 PM on the day. Once confirmed, you'll receive all the meetup details and a WhatsApp group link.\n\nIf for some reason the event doesn't go ahead, you'll be offered a reschedule or full refund.";
+        case 'meetup_inquiry':
+            return "The meetup location is shared after your booking is confirmed. You'll get the exact address, Google Maps link, and timing — everything you need.\n\nThe starting point is always on Sukhumvit, easy to reach.";
+        case 'date_check':
+            return "We run every Friday and Saturday on Sukhumvit. The night starts at 9:30 PM.\n\nWhich night are you looking at?";
+        case 'booking_request':
+            if (session.dateConfirmed && (session.dateConfirmed === 'this_friday' || session.dateConfirmed === 'this_saturday')) {
+                session.bookingLinkSent = true;
+                session.stage = 'post_booking';
+                return `Let's get you in 👇\n\n→ Book Your Spot Now: ${BOOKING_URL}\n\nPick your date, add your details, and you're confirmed. Payment is via Stripe — secure and instant.`;
+            }
+            if (!session.dateConfirmed) {
+                session.stage = 'date_qualification';
+                return "Happy to get you booked in. First — are you looking at this Friday or Saturday?";
+            }
+            break;
+        case 'positive_closing':
+            if (session.bookingLinkSent) {
+                return "See you on the night. It's going to be a good one. 🙌\n\nBangkok Nights. Done Right.";
+            }
+            return "Glad to help! If you need anything else or want to lock in a spot, just say the word. 🙌";
+        case 'greeting':
+            return "Hey! 🙌 How can I help? Looking to join the Bangkok Club Crawl?";
+        default:
+            return null;
+    }
+    return null;
+}
+
+function handleWarmEntryServer(session, intent, dateIntent, text) {
+    if (dateIntent === 'this_friday' || dateIntent === 'this_saturday') {
+        session.stage = 'rapport';
+        const day = dateIntent === 'this_friday' ? 'Friday' : 'Saturday';
+        return `Great — ${day} it is. The night starts at 9:30 PM, moving through 4 curated venues across Sukhumvit with VIP entry, dedicated hosts, and smooth transport between stops.\n\nWill you be joining solo or bringing a group?`;
+    }
+    if (dateIntent === 'future') {
+        session.stage = 'date_qualification';
+        return "No rush. We run every Friday and Saturday. When you're closer to your dates in Bangkok, reach out and we'll get you sorted.\n\nAnything you'd like to know about the experience in the meantime?";
+    }
+    if (dateIntent === 'unsure') {
+        session.stage = 'date_qualification';
+        return "No worries. We run every Friday and Saturday. If you're still confirming your plans, just know — we finalize the group by 7 PM on the day. Plenty of time to decide.\n\nWhat brings you to Bangkok?";
+    }
+    switch (intent) {
+        case 'greeting':
+            return "Hey — welcome. 🙌\n\nBangkok Club Crawl is a structured nightlife experience. 4 curated venues, dedicated hosts, VIP entry, and smooth transport between stops. Every Friday and Saturday on Sukhumvit.\n\nAre you in Bangkok this Friday or Saturday?";
+        case 'booking_request':
+            session.stage = 'date_qualification';
+            return "Happy to help you get booked in. First — are you looking at this Friday or Saturday?";
+        case 'price_objection':
+            session.stage = 'objection_handling';
+            if (!session.objectionsRaised.includes('price')) session.objectionsRaised.push('price');
+            return "The experience is ฿1,500 per person. That covers 4 premium venues with VIP entry, dedicated hosts guiding the flow, smooth transport between stops, and welcome drinks.\n\nIt's structured access — not just club entry. The night is designed to flow.\n\nAre you in Bangkok this weekend?";
+        case 'solo_concern':
+            session.stage = 'objection_handling';
+            if (!session.objectionsRaised.includes('solo')) session.objectionsRaised.push('solo');
+            session.groupType = 'solo';
+            session.groupSize = 1;
+            return "That's actually how most of our guests join — solo. The night is structured to make connection happen naturally. You'll arrive alone and leave with a crew.\n\nOur hosts are there specifically to manage the social flow so nobody's left standing on the side.\n\nAre you in Bangkok this Friday or Saturday?";
+        case 'general_inquiry':
+            return "Bangkok Club Crawl is a structured nightlife experience across 4 curated Sukhumvit venues. Each stop is designed to escalate the energy — from a social warmup to a full peak by the final club.\n\nYou get VIP entry, dedicated hosts, transport between stops, and welcome drinks. It's designed to flow — not random, not chaotic.\n\nAre you in Bangkok this Friday or Saturday?";
+        case 'whats_included':
+            return "Here's what's included:\n\n• 4 curated venues across Sukhumvit\n• VIP / priority entry at each stop\n• Dedicated hosts guiding the night's flow\n• Transport between venues\n• Welcome drinks at selected stops\n• An international, curated crowd\n\nThe night runs from 9:30 PM and moves through a deliberate energy arc — social warmup to peak.\n\nAre you in Bangkok this weekend?";
+        case 'date_check':
+            session.stage = 'date_qualification';
+            return "We run every Friday and Saturday on Sukhumvit. The night starts at 9:30 PM.\n\nWhich night works better for you?";
+        case 'safety_concern':
+            if (!session.objectionsRaised.includes('safety')) session.objectionsRaised.push('safety');
+            return "Safety and comfort are built into the structure. Our dedicated hosts manage the vibe and group flow the entire night. It's high energy but always controlled — we design the atmosphere, we don't leave it to chance.\n\nAre you considering this Friday or Saturday?";
+        default:
+            return "Thanks for reaching out. Bangkok Club Crawl is a curated nightlife experience — 4 venues, VIP entry, dedicated hosts, and smooth transport. Every Friday and Saturday.\n\nAre you in Bangkok this weekend?";
+    }
+}
+
+function handleDateQualificationServer(session, intent, dateIntent, text) {
+    if (dateIntent === 'this_friday' || dateIntent === 'this_saturday') {
+        session.stage = 'rapport';
+        const day = dateIntent === 'this_friday' ? 'Friday' : 'Saturday';
+        return `${day} — solid choice. The night kicks off at 9:30 PM across 4 curated venues on Sukhumvit. VIP entry, hosts, transport — everything's handled.\n\nWill you be joining solo or with a group?`;
+    }
+    if (dateIntent === 'future') {
+        return "Perfect. We run every Friday and Saturday, so whenever your Bangkok dates are locked in, just reach out and we'll sort your spot.\n\nAnything specific you want to know about the experience?";
+    }
+    if (dateIntent === 'unsure') {
+        return "That's completely fine. We confirm events by 7 PM on the day, so there's flexibility. When you're clearer on plans, we'll be here.\n\nIn the meantime — anything you'd like to know?";
+    }
+    return handleIntentAtAnyStageServer(session, intent, text) || "Got it. Just to get you the right info — are you looking at this Friday or Saturday?";
+}
+
+function handleRapportServer(session, intent, text) {
+    const groupInfo = detectGroupInfoServer(text);
+    if (groupInfo) {
+        session.groupType = groupInfo.type;
+        session.groupSize = groupInfo.size;
+    }
+    if (session.groupType === 'solo' || intent === 'solo_concern') {
+        if (!session.objectionsRaised.includes('solo')) session.objectionsRaised.push('solo');
+        session.stage = 'controlled_close';
+        return "Perfect. Most guests join solo — it's actually how 70%+ of our crowd arrives. The night is intentionally designed so the ice breaks naturally from the first venue.\n\nOur hosts guide the social energy, so you won't be standing on the sideline. You'll arrive solo, leave with a crew.\n\nWant me to send you the booking link?";
+    }
+    if (session.groupType === 'couple') {
+        session.stage = 'controlled_close';
+        return "Great — as a pair, you'll blend right in. The night mixes your crew with the wider group naturally, so you get the best of both: your own dynamic plus a bigger social energy.\n\nReady to lock in your spots?";
+    }
+    if (session.groupType === 'small_group') {
+        session.stage = 'controlled_close';
+        return `Nice — a group of ${session.groupSize} fits perfectly. You'll keep your crew while mixing with the wider group naturally. The hosts make sure the energy stays inclusive.\n\nShall I send you the booking link to secure your spots?`;
+    }
+    return handleIntentAtAnyStageServer(session, intent, text) || "Good to have you. Will you be coming solo or with friends?";
+}
+
+function handleObjectionHandlingServer(session, intent, text) {
+    const response = handleIntentAtAnyStageServer(session, intent, text);
+    if (response) return response;
+    const dateIntent = detectDateIntentServer(text);
+    if (dateIntent === 'this_friday' || dateIntent === 'this_saturday') {
+        session.dateConfirmed = dateIntent;
+        session.stage = 'rapport';
+        const day = dateIntent === 'this_friday' ? 'Friday' : 'Saturday';
+        return `Great — ${day} works. Will you be coming solo or with a group?`;
+    }
+    if (!session.dateConfirmed) {
+        return "I hear you. Are you in Bangkok this Friday or Saturday? That'll help me get you the right details.";
+    }
+    session.stage = 'controlled_close';
+    return "Those are all fair questions. The short version: it's a premium, structured night — not random chaos. Everything's curated to flow.\n\nReady for me to send the booking link?";
+}
+
+function handleControlledCloseServer(session, intent, text) {
+    const lower = text.toLowerCase();
+    if (lower.match(/(yes|yeah|yep|sure|send it|let's go|let's do it|book|ready|i'm in|count me in|go for it|absolutely|definitely|do it|please|link)/)) {
+        session.bookingLinkSent = true;
+        session.stage = 'post_booking';
+        return `Here you go 👇\n\n→ Book Your Spot Now: ${BOOKING_URL}\n\nThe form takes about 60 seconds. Pick your date, add your details, and you're in. Payment is via Stripe — secure and instant.\n\nOnce confirmed, you'll get the meet-up details. Any questions before you book?`;
+    }
+    const objectionResponse = handleIntentAtAnyStageServer(session, intent, text);
+    if (objectionResponse) return objectionResponse;
+    if (lower.match(/(think|maybe|not sure|later|consider|hmm|idk)/)) {
+        return "No pressure at all. We run every Friday and Saturday, so the option's always there. If you're still deciding, just know we confirm the group by 7 PM on the day.\n\nFeel free to come back when you're ready — we'll sort your spot.";
+    }
+    return "Whenever you're ready, I can send the booking link. No rush — we run every weekend. 🙌";
+}
+
+function handlePostBookingServer(session, intent, text) {
+    if (intent === 'dress_code') return "Dress code is smart casual. Think clean and styled — no flip-flops, no sports shorts, no sleeveless athletic wear. You don't need to overdress, just look like you planned the outfit.\n\nAnything else you need before the night?";
+    if (intent === 'meetup_inquiry') return "The exact meetup location will be shared once your booking is confirmed — you'll receive all the details including the meeting point, time, and what to expect.\n\nAnything else on your mind?";
+    if (intent === 'time_inquiry') return "The night starts at 9:30 PM. We recommend arriving a few minutes early. The last venue usually wraps between 2–3 AM depending on the energy of the group.\n\nAnything else?";
+    if (intent === 'refund_inquiry') return "Here's how cancellations work:\n\n• Same-day cancellations are non-refundable\n• No-shows are non-refundable\n• If we cancel the event (rare), you'll be offered a reschedule or full refund immediately\n\nFor date changes, reach out to us as early as possible and we'll do our best to accommodate.\n\nAnything else?";
+    if (intent === 'confirmation_inquiry') return "We confirm events by 7 PM on the day. Once confirmed, you'll receive the meetup details and a WhatsApp group link to connect with the crew.\n\nThe night is on. 🙌";
+    if (intent === 'positive_closing') return "See you on the night. It's going to be a good one. 🙌\n\nBangkok Nights. Done Right.";
+    return "You're all set. If anything comes up before the night, just message here. See you soon. 🙌";
+}
+
+function generateSalesResponse(session, text) {
+    session.messageCount++;
+
+    // Step 1: Escalation check
+    const escalationReason = detectEscalationServer(text);
+    if (escalationReason) {
+        session.escalated = true;
+        session.stage = 'escalated';
+        return { response: getEscalationResponseServer(escalationReason), escalated: true, escalationReason };
+    }
+
+    // Step 2: Confidential check
+    const confidentialTopic = detectConfidentialServer(text);
+    if (confidentialTopic) {
+        return { response: getConfidentialResponseServer(confidentialTopic), escalated: false };
+    }
+
+    // Step 3: Intent detection
+    const intent = detectIntentServer(text);
+    const dateIntent = detectDateIntentServer(text);
+    const groupInfo = detectGroupInfoServer(text);
+
+    if (dateIntent && !session.dateConfirmed) session.dateConfirmed = dateIntent;
+    if (groupInfo) {
+        session.groupType = groupInfo.type;
+        session.groupSize = groupInfo.size;
+        if (groupInfo.type === 'large_group') {
+            session.escalated = true;
+            session.stage = 'escalated';
+            return { response: getEscalationResponseServer('large_group'), escalated: true, escalationReason: 'large_group' };
+        }
+    }
+
+    let response;
+    switch (session.stage) {
+        case 'warm_entry':
+            response = handleWarmEntryServer(session, intent, dateIntent, text);
+            break;
+        case 'date_qualification':
+            response = handleDateQualificationServer(session, intent, dateIntent, text);
+            break;
+        case 'rapport':
+            response = handleRapportServer(session, intent, text);
+            break;
+        case 'objection_handling':
+            response = handleObjectionHandlingServer(session, intent, text);
+            break;
+        case 'controlled_close':
+            response = handleControlledCloseServer(session, intent, text);
+            break;
+        case 'post_booking':
+            response = handlePostBookingServer(session, intent, text);
+            break;
+        case 'escalated':
+            response = "This has been flagged for our team. Someone from BEST Nightlife will reach out to you directly. Is there anything else I can help with in the meantime?";
+            break;
+        default:
+            response = handleWarmEntryServer(session, intent, dateIntent, text);
+    }
+
+    return { response, escalated: false, stage: session.stage, intent };
+}
+
+// --- Channel Identification & User Key Extraction ---
+
+function identifyChannel(payload) {
+    // n8n sends a standardized payload with a 'channel' field
+    // Fallback: detect from payload shape
+    const ch = (payload.channel || '').toLowerCase();
+    if (ch === 'whatsapp' || ch === 'wa') return 'whatsapp';
+    if (ch === 'instagram' || ch === 'ig') return 'instagram';
+    if (ch === 'facebook' || ch === 'fb' || ch === 'messenger') return 'facebook';
+
+    // Auto-detect from payload fields
+    if (payload.from && payload.from.startsWith('+')) return 'whatsapp';
+    if (payload.instagram_handle || payload.ig_handle || payload.ig_username) return 'instagram';
+    if (payload.page_id || payload.facebook_page_id || payload.psid) return 'facebook';
+
+    return 'unknown';
+}
+
+function extractUserKey(channel, payload) {
+    switch (channel) {
+        case 'whatsapp': {
+            let phone = payload.from || payload.phone || payload.sender_phone || payload.wa_id || '';
+            // Normalize
+            phone = String(phone).replace(/[^\d+]/g, '');
+            if (phone.startsWith('0') && phone.length >= 9) phone = '+66' + phone.slice(1);
+            if (!phone.startsWith('+') && phone.length >= 10) phone = '+' + phone;
+            return { type: 'phone', value: phone || null };
+        }
+        case 'instagram': {
+            const handle = payload.instagram_handle || payload.ig_handle || payload.ig_username || payload.sender_id || payload.from || '';
+            return { type: 'ig_handle', value: handle.replace('@', '') || null };
+        }
+        case 'facebook': {
+            const psid = payload.psid || payload.sender_id || payload.from || '';
+            return { type: 'fb_psid', value: psid || null };
+        }
+        default:
+            return { type: 'unknown', value: payload.from || payload.sender_id || null };
+    }
+}
+
+// --- Webhook Secret for Security ---
+const OMNICHANNEL_WEBHOOK_SECRET = process.env.OMNICHANNEL_WEBHOOK_SECRET || '';
+
+app.post('/api/omnichannel-chat', async (req, res) => {
+    console.log('📥 Omnichannel chat webhook received');
+
+    try {
+        // ——— 1. Optional Webhook Secret Verification ———
+        if (OMNICHANNEL_WEBHOOK_SECRET) {
+            const providedSecret =
+                req.headers['x-webhook-secret'] ||
+                req.headers['authorization']?.replace('Bearer ', '') ||
+                req.query.secret || '';
+
+            if (providedSecret !== OMNICHANNEL_WEBHOOK_SECRET) {
+                console.error('❌ Omnichannel webhook: Invalid secret');
+                return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret' });
+            }
+        }
+
+        const payload = req.body;
+
+        // ——— 2. Extract Message ———
+        const messageText = payload.message || payload.text || payload.body || payload.content || '';
+        if (!messageText || !messageText.trim()) {
+            return res.status(400).json({ error: 'Missing message content' });
+        }
+
+        // ——— 3. Identify Channel ———
+        const channel = identifyChannel(payload);
+        const userKey = extractUserKey(channel, payload);
+
+        if (!userKey.value) {
+            return res.status(400).json({ error: 'Cannot identify sender. Provide "from", "phone", "ig_handle", or "psid".' });
+        }
+
+        const sessionKey = `${channel}:${userKey.value}`;
+        console.log(`📱 Channel: ${channel} | User: ${userKey.value} | Key: ${sessionKey}`);
+
+        // ——— 4. Upsert Guest Profile in Supabase ———
+        let guestId = null;
+        try {
+            if (channel === 'whatsapp' && userKey.type === 'phone') {
+                // Phone-first matching (primary key per data-schema-rules)
+                const { data: existingGuest } = await supabase
+                    .from('guests')
+                    .select('id, tags')
+                    .eq('phone', userKey.value)
+                    .single();
+
+                if (existingGuest) {
+                    guestId = existingGuest.id;
+                    // Update source channel if first time from this channel
+                    await supabase.from('guests').update({
+                        source: 'whatsapp',
+                        updated_at: new Date().toISOString()
+                    }).eq('id', guestId);
+                } else {
+                    // Create minimal guest profile
+                    const name = payload.sender_name || payload.profile_name || payload.name || null;
+                    const { data: newGuest, error: guestError } = await supabase
+                        .from('guests')
+                        .insert({
+                            first_name: name,
+                            phone: userKey.value,
+                            source: 'whatsapp',
+                            tags: ['Interested'],
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .select('id')
+                        .single();
+
+                    if (!guestError && newGuest) {
+                        guestId = newGuest.id;
+                        console.log(`👤 New WhatsApp guest created: ${guestId}`);
+                    }
+                }
+            } else if (channel === 'instagram' && userKey.type === 'ig_handle') {
+                // Match by IG handle stored in metadata or source field
+                const { data: existingGuest } = await supabase
+                    .from('guests')
+                    .select('id, tags')
+                    .eq('ig_handle', userKey.value)
+                    .single()
+                    .catch(() => ({ data: null }));
+
+                if (existingGuest) {
+                    guestId = existingGuest.id;
+                    await supabase.from('guests').update({
+                        source: 'instagram',
+                        updated_at: new Date().toISOString()
+                    }).eq('id', guestId);
+                } else {
+                    const name = payload.sender_name || payload.name || userKey.value;
+                    const { data: newGuest, error: guestError } = await supabase
+                        .from('guests')
+                        .insert({
+                            first_name: name,
+                            source: 'instagram',
+                            ig_handle: userKey.value,
+                            tags: ['Interested', 'IG-Lead'],
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .select('id')
+                        .single();
+
+                    if (!guestError && newGuest) {
+                        guestId = newGuest.id;
+                        console.log(`👤 New Instagram guest created: ${guestId}`);
+                    }
+                }
+            } else if (channel === 'facebook' && userKey.type === 'fb_psid') {
+                // Match by FB PSID
+                const { data: existingGuest } = await supabase
+                    .from('guests')
+                    .select('id, tags')
+                    .eq('fb_psid', userKey.value)
+                    .single()
+                    .catch(() => ({ data: null }));
+
+                if (existingGuest) {
+                    guestId = existingGuest.id;
+                    await supabase.from('guests').update({
+                        source: 'facebook',
+                        updated_at: new Date().toISOString()
+                    }).eq('id', guestId);
+                } else {
+                    const name = payload.sender_name || payload.name || null;
+                    const { data: newGuest, error: guestError } = await supabase
+                        .from('guests')
+                        .insert({
+                            first_name: name,
+                            source: 'facebook',
+                            fb_psid: userKey.value,
+                            tags: ['Interested', 'FB-Lead'],
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .select('id')
+                        .single();
+
+                    if (!guestError && newGuest) {
+                        guestId = newGuest.id;
+                        console.log(`👤 New Facebook guest created: ${guestId}`);
+                    }
+                }
+            }
+        } catch (dbErr) {
+            // Non-blocking — continue even if guest upsert fails
+            console.error('⚠️ Guest upsert error (non-blocking):', dbErr.message);
+        }
+
+        // ——— 5. Generate AI Response via Sales Agent ———
+        const session = getOrCreateSession(sessionKey);
+        const result = generateSalesResponse(session, messageText.trim());
+
+        console.log(`💬 Response generated | Stage: ${session.stage} | Escalated: ${result.escalated}`);
+
+        // ——— 6. Send Admin Notification on Escalation ———
+        if (result.escalated && process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+            await sendEmail({
+                to: ADMIN_EMAIL,
+                subject: `🚨 Escalation: ${channel} message from ${userKey.value}`,
+                text: [
+                    `🚨 Chat Escalation (${channel.toUpperCase()})`,
+                    ``,
+                    `User: ${userKey.value}`,
+                    `Reason: ${result.escalationReason || 'unknown'}`,
+                    `Message: "${messageText.trim()}"`,
+                    ``,
+                    `Guest ID: ${guestId || 'Not linked'}`,
+                    `Session Stage: ${session.stage}`
+                ].join('\n')
+            }).catch(err => console.error('⚠️ Escalation email failed:', err.message));
+        }
+
+        // ——— 7. Return Response for n8n ———
+        return res.json({
+            reply: result.response,
+            channel: channel,
+            user_key: userKey.value,
+            user_key_type: userKey.type,
+            guest_id: guestId,
+            session_stage: session.stage,
+            escalated: result.escalated,
+            escalation_reason: result.escalationReason || null
+        });
+
+    } catch (err) {
+        console.error('❌ Omnichannel chat error:', err);
+        return res.status(500).json({
+            error: 'Chat processing failed',
+            message: err.message
+        });
     }
 });
 
