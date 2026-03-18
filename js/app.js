@@ -756,6 +756,8 @@ function initBookingWizard() {
     // Update Step 4 Summary
     function updateSummary() {
         const date = document.getElementById('selected-date').value || 'TBD';
+        const dayInput = document.querySelector('input[name="event-day"]:checked');
+        const dayValue = dayInput ? dayInput.value : '';
         const blocks = document.querySelectorAll('.guest-block');
         let subtotal = 0;
         let guestSummaryParts = [];
@@ -764,7 +766,7 @@ function initBookingWizard() {
             const gender = block.querySelector('.guest-gender-select').value;
             const count = parseInt(block.querySelector('.guest-count-input').value) || 0;
             if (count > 0) {
-                subtotal += BCC_UTILS.calculatePrice(gender, count);
+                subtotal += BCC_UTILS.calculatePrice(gender, count, dayValue);
                 guestSummaryParts.push(`${count}x ${gender.charAt(0).toUpperCase() + gender.slice(1)}`);
             }
         });

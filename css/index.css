@@ -686,6 +686,9 @@ section {
     display: flex;
     flex-direction: column;
     height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
 }
 
 .expansion-hero {
@@ -700,8 +703,14 @@ section {
 }
 
 .event-expansion-overlay.expanded .expansion-hero {
-    height: 50vh;
-    /* Expands to top half of screen */
+    height: 40vh;
+    /* Expands to top portion of screen */
+}
+
+@media (min-width: 768px) {
+    .event-expansion-overlay.expanded .expansion-hero {
+        height: 50vh;
+    }
 }
 
 .expansion-hero-overlay {
@@ -783,7 +792,6 @@ section {
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.4s ease 0.4s;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
 }

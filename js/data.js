@@ -223,9 +223,18 @@ const BCC_DATA = {
  * 🛠️ Data Utility Methods
  */
 const BCC_UTILS = {
-    // Calculate price based on gender and quantity
-    calculatePrice: (gender, quantity) => {
-        const unitPrice = gender === 'female' ? BCC_DATA.schemas.booking.logic.femalePrice : BCC_DATA.schemas.booking.logic.malePrice;
+    // Calculate price based on gender, quantity, and day
+    calculatePrice: (gender, quantity, day) => {
+        let malePrice = BCC_DATA.schemas.booking.logic.malePrice; // 1500
+        let femalePrice = BCC_DATA.schemas.booking.logic.femalePrice; // 1200
+
+        // Thursday pricing
+        if (day === '4') {
+            malePrice = 1200;
+            femalePrice = 1000;
+        }
+
+        const unitPrice = gender === 'female' ? femalePrice : malePrice;
         return unitPrice * quantity;
     },
 
