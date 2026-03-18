@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSelectNightCards();
     initFeaturesGrid();
     initHostsSection();
-    initSocialProofSection();
+
     initFAQSection();
     initBookingWizard();
     initChatAssistant();
@@ -446,29 +446,6 @@ function initRitualsSection() {
     });
 
     section.appendChild(timeline);
-}
-
-/**
- * ⭐️ Initialize Social Proof Section
- */
-function initSocialProofSection() {
-    const section = document.querySelector('#social .container');
-    if (!section) return;
-
-    section.innerHTML = `
-        <div class="section-header">
-            <span class="section-label">Guest Experience</span>
-            <h2 class="section-h2">What <span class="text-gradient-pink">Guests Say</span></h2>
-        </div>
-        
-        <div class="reviews-container" style="display: flex; flex-direction: column; gap: var(--space-2xl); margin-top: var(--space-2xl);">
-            <!-- Airbnb Reviews Widget -->
-            <div class="elfsight-app-c9a3552e-9881-4e1c-98f3-0a366fc9e590" data-elfsight-app-lazy></div>
-            
-            <!-- Google Reviews Widget -->
-            <div class="elfsight-app-2a8f47e3-cd44-475c-a54d-5df650fcf6b7" data-elfsight-app-lazy></div>
-        </div>
-    `;
 }
 
 /**
