@@ -423,6 +423,8 @@ section {
     background: linear-gradient(to top, rgba(28, 28, 30, 0.95) 0%, rgba(28, 28, 30, 0.4) 60%, rgba(28, 28, 30, 0.1) 100%);
     z-index: 1;
     transition: var(--transition-base);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 .night-card:hover .night-card-overlay {
@@ -703,13 +705,13 @@ section {
 }
 
 .event-expansion-overlay.expanded .expansion-hero {
-    height: 40vh;
-    /* Expands to top portion of screen */
+    height: 30vh;
+    /* Expands to top portion of screen, leaving massive room for text on mobile */
 }
 
 @media (min-width: 768px) {
     .event-expansion-overlay.expanded .expansion-hero {
-        height: 50vh;
+        height: 40vh;
     }
 }
 
@@ -718,6 +720,8 @@ section {
     inset: -2px;
     background: linear-gradient(to top, rgba(28, 28, 30, 0.95) 0%, rgba(28, 28, 30, 0.5) 50%, rgba(28, 28, 30, 0.2) 100%);
     z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 .expansion-hero-content {

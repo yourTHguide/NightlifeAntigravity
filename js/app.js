@@ -175,12 +175,13 @@ function initSelectNightCards() {
             // Extract info from clicked card
             const title = card.querySelector('.night-card-subtitle').innerText;
             const dayStr = card.querySelector('.night-card-title').innerText;
+            const lookupDay = dayStr.charAt(0).toUpperCase() + dayStr.slice(1).toLowerCase();
 
             // Extract the background image
             const bgImage = card.style.backgroundImage || getComputedStyle(card).backgroundImage;
 
             // --- Populating Content Based On Day ---
-            const data = nightData[dayStr] || nightData['Friday']; // fallback
+            const data = nightData[lookupDay] || nightData['Friday']; // fallback
 
             hero.style.backgroundImage = bgImage;
             titleEl.innerText = title;
