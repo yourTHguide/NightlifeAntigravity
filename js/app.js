@@ -24,9 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initSelectNightCards();
     initFeaturesGrid();
-    initRoutePreview();
     initHostsSection();
-    initRitualsSection();
     initSocialProofSection();
     initFAQSection();
     initBookingWizard();

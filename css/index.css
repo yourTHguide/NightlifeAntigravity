@@ -950,387 +950,92 @@ section {
     box-shadow: 0 4px 20px rgba(255, 45, 149, 0.2);
 }
 
-/* === WEEKEND ROUTE PREVIEW === */
-.route-preview {
-    background: linear-gradient(to bottom, #111114, #1C1C1E);
-    overflow: hidden;
+/* === HOW YOUR NIGHT FLOWS === */
+.night-flow {
+    background: var(--color-dark-base);
     padding: var(--space-3xl) 0;
 }
 
-.route-toggle-container {
+.flow-container {
     display: flex;
-    justify-content: center;
-    margin-bottom: var(--space-2xl);
-}
-
-.route-toggle {
-    display: flex;
-    background: var(--color-dark-surface);
-    padding: 4px;
-    border-radius: var(--radius-full);
-    border: 1px solid var(--color-border);
-}
-
-.toggle-btn {
-    padding: var(--space-sm) var(--space-xl);
-    border-radius: var(--radius-full);
-    border: none;
-    background: transparent;
-    color: var(--color-gray);
-    font-weight: var(--weight-semibold);
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: var(--transition-base);
-}
-
-.toggle-btn.active {
-    background: rgba(255, 45, 149, 0.15);
-    color: var(--color-white);
-    border: 1px solid rgba(255, 45, 149, 0.5);
-    box-shadow: 0 0 10px rgba(255, 45, 149, 0.2);
-}
-
-.route-carousel-wrapper {
-    position: relative;
-    width: 100%;
-    margin: 0 auto;
-    padding: var(--space-md) 0;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-}
-
-@media (min-width: 1024px) {
-    .route-carousel {
-        justify-content: center;
-        padding: 0;
-        gap: var(--space-xl);
-    }
-
-    .route-card {
-        flex: 0 0 300px;
-        opacity: 0.6;
-        transform: scale(0.95);
-    }
-
-    .route-card:hover {
-        opacity: 1;
-        transform: scale(1.02);
-        border-color: #D4AF37;
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-    }
-
-    .route-card.active {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.route-carousel-wrapper::-webkit-scrollbar {
-    display: none;
-    /* Chrome/Safari */
-}
-
-.route-carousel {
-    display: flex;
+    flex-direction: column;
     gap: var(--space-md);
-    padding: 0 40px;
-    /* Padding for first and last cards to center */
+    max-width: 800px;
+    margin: var(--space-2xl) auto 0;
 }
 
-.route-card {
-    flex: 0 0 280px;
-    height: 420px;
-    scroll-snap-align: center;
-    background-color: var(--color-dark-surface);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
-    position: relative;
-    overflow: hidden;
+.flow-step {
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: var(--space-xl);
-    text-align: center;
-    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-    transform: scale(0.92);
-    opacity: 0.7;
-    cursor: pointer;
-}
-
-.route-card-image {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    transform: translate(-50%, -50%);
-    object-fit: cover;
-    z-index: 0;
-    transition: transform 0.6s ease, opacity 0.4s ease;
-}
-
-.route-card:hover .route-card-image {
-    transform: translate(-50%, -50%) scale(1.1);
-}
-
-.route-card-overlay {
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(to top, rgba(17, 17, 20, 0.95) 0%, rgba(17, 17, 20, 0.65) 65%, transparent 100%);
-    z-index: 1;
-    pointer-events: none;
-}
-
-.route-card-content {
-    position: relative;
-    z-index: 2;
-    padding-bottom: var(--space-xl);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.route-card.active {
-    transform: scale(1);
-    opacity: 1;
-    border-color: #D4AF37;
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-}
-
-.route-music-capsule {
-    display: inline-block;
-    padding: 4px 14px;
-    border-radius: var(--radius-full);
-    border: 1px solid #D4AF37;
-    color: #D4AF37;
-    font-size: 0.65rem;
-    font-weight: var(--weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: var(--space-sm);
-    background: rgba(212, 175, 55, 0.05);
-}
-
-.route-venue-title {
-    font-family: var(--font-headline);
-    font-size: 1.6rem;
-    font-weight: var(--weight-bold);
-    color: var(--color-white);
-    margin-bottom: var(--space-xl);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-}
-
-.stop-badge-container {
-    display: flex;
-    justify-content: center;
-}
-
-.stop-badge-subtle {
-    display: inline-block;
-    color: var(--color-gray-light);
-    font-size: 0.8rem;
-    font-weight: var(--weight-bold);
-    padding: 6px 16px;
-    border-radius: var(--radius-full);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.03);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    backdrop-filter: blur(4px);
-}
-
-/* Lightbox */
-.lightbox-overlay {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(10px);
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.lightbox-overlay.active {
-    display: flex;
-    opacity: 1;
-}
-
-.lightbox-content {
-    max-width: 90%;
-    max-height: 80%;
-    border-radius: var(--radius-md);
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-    transform: scale(0.9);
-    transition: transform 0.3s ease;
-}
-
-.lightbox-overlay.active .lightbox-content {
-    transform: scale(1);
-}
-
-.lightbox-close {
-    position: absolute;
-    top: 20px;
-    right: 30px;
-    color: var(--color-white);
-    font-size: 40px;
-    cursor: pointer;
-}
-
-/* Bottom Sheet */
-.bottom-sheet-overlay {
-    display: none;
-    position: fixed;
-    z-index: 1500;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.bottom-sheet-overlay.active {
-    display: block;
-    opacity: 1;
-}
-
-.bottom-sheet-content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
     background: var(--color-dark-surface);
-    border-top: 1px solid var(--color-border);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: var(--space-xl);
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    max-height: 75vh;
-    display: flex;
-    flex-direction: column;
-}
-
-.bottom-sheet-overlay.active .bottom-sheet-content {
-    transform: translateY(0);
-}
-
-.bottom-sheet-handle {
-    width: 40px;
-    height: 4px;
-    background: var(--color-gray);
-    border-radius: var(--radius-full);
-    margin: 0 auto var(--space-xl);
-}
-
-#sheet-details h3 {
-    font-family: var(--font-headline);
-    font-size: 1.5rem;
-    margin-bottom: var(--space-sm);
-    text-transform: uppercase;
-}
-
-#sheet-details .music-label {
-    color: #F1D18A;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: var(--space-md);
-    display: block;
-}
-
-#sheet-details .desc {
-    color: var(--color-gray-light);
-    line-height: 1.6;
-    margin-bottom: var(--space-xl);
-}
-
-/* === EXPERIENCE SECTION (3-RITUAL SYSTEM) === */
-.ritual-timeline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xl);
-    justify-content: center;
-    margin-top: var(--space-3xl);
-}
-
-.ritual-card {
-    flex: 1;
-    min-width: 300px;
-    max-width: 360px;
-    min-height: 400px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-    position: relative;
-    padding: var(--space-xl);
-    background-color: var(--color-dark-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    background-size: cover;
-    background-position: center;
+    padding: var(--space-xl);
+    position: relative;
     overflow: hidden;
-    transition: var(--transition-base);
 }
 
-.ritual-card:hover {
-    transform: translateY(-8px);
-    border-color: #F1D18A;
-    box-shadow: var(--shadow-elevated), 0 0 20px var(--color-gold-glow);
+@media (min-width: 768px) {
+    .flow-step {
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-3xl);
+        padding: var(--space-xl) var(--space-2xl);
+    }
 }
 
-.ritual-energy-container {
+.flow-energy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    min-width: 140px;
+    margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 768px) {
+    .flow-energy {
+        margin-bottom: 0;
+    }
+}
+
+.energy-bar-wrap {
     width: 100%;
-    margin-bottom: var(--space-md);
-}
-
-.ritual-energy-label {
-    font-size: var(--text-label);
-    color: var(--color-white);
-    font-weight: var(--weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-wide);
-    display: block;
-    margin-bottom: var(--space-xs);
-    text-align: center;
-}
-
-.ritual-energy-bar {
-    width: 100%;
-    height: 6px;
+    height: 8px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-full);
     overflow: hidden;
 }
 
-.ritual-energy-progress {
+.energy-fill {
     height: 100%;
-    background: var(--color-primary);
+    background: var(--color-white);
     border-radius: var(--radius-full);
-    box-shadow: 0 0 10px var(--color-primary-glow);
 }
 
-.ritual-title {
+.energy-label {
+    font-size: var(--text-label);
+    color: var(--color-gray-light);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    font-weight: var(--weight-bold);
+}
+
+.flow-content {
+    flex: 1;
+}
+
+.flow-title {
+    font-family: var(--font-headline);
     font-size: var(--text-h3);
-    margin-bottom: var(--space-md);
+    color: var(--color-white);
+    margin-bottom: var(--space-sm);
 }
 
-.ritual-desc {
+.flow-desc {
     font-size: var(--text-body);
     color: var(--color-gray-light);
+    line-height: 1.5;
 }
 
 /* === FEATURE GRID === */
