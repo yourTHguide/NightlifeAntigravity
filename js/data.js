@@ -39,7 +39,7 @@ const BCC_DATA = {
         {
             id: 'crowd',
             title: 'INTERNATIONAL CROWD',
-            description: 'A curated mix of travelers and locals.',
+            description: 'A curated mix of foreigners and locals.',
             icon: '✨'
         }
     ],
@@ -148,7 +148,7 @@ const BCC_DATA = {
             answer: "Most of our guests arrive solo. Our night is intentionally structured to break the ice naturally from the first toast. You'll arrive solo but leave with a crew."
         },
         {
-            question: "Is it worth the 1,500 THB price?",
+            question: "Is it worth the price?",
             answer: "You're paying for a curated, premium experience. This includes priority access to 4 high-end venues, smooth transportation, welcome drinks, and professional hosting. It's intentionally guided — so the night flows without chaos."
         },
         {
@@ -171,7 +171,7 @@ const BCC_DATA = {
             id: 'host-ice',
             name: 'Ice',
             image: 'assets/images/IceBaby.jpg',
-            role: 'Lead Host',
+            role: 'Energy Host',
             shortDesc: 'High energy with sharp intuition.',
             description: 'Ice reads the room instantly. She turns hesitation into momentum and makes strangers feel like they’ve known each other for years. Confident, warm, and always in control of the vibe.',
             badges: ['Crowd Reader', 'Energy Builder', 'International Friendly', 'Flow Keeper'],
@@ -181,7 +181,7 @@ const BCC_DATA = {
             id: 'host-boom',
             name: 'Boom',
             image: 'assets/images/Boom.jpg',
-            role: 'Operations Host',
+            role: 'Lead Host',
             shortDesc: 'Smooth transitions. Calm control.',
             description: 'Boom ensures every move between venues feels effortless. She keeps timing tight, energy steady, and the group aligned without ever forcing it. Precision without pressure.',
             badges: ['Seamless Transitions', 'Group Alignment', 'Music Sense', 'Rhythm Control'],
@@ -191,7 +191,7 @@ const BCC_DATA = {
             id: 'host-jj',
             name: 'JJ',
             image: 'assets/images/JJ.jpg',
-            role: 'Energy Host',
+            role: 'Operations Host',
             shortDesc: 'Confident presence. Natural magnetism.',
             description: 'JJ brings grounded intensity. She knows when to lift the tempo and when to let the night breathe. Guests trust her instinct — and follow her lead without hesitation.',
             badges: ['High-Energy Presence', 'Room Awareness', 'Moment Builder', 'Guest Connector'],
