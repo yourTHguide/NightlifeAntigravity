@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSelectNightCards();
     initFeaturesGrid();
     initHostsSection();
+    initFlowSection();
 
     initFAQSection();
     initBookingWizard();
@@ -446,6 +447,18 @@ function initRitualsSection() {
     });
 
     section.appendChild(timeline);
+}
+
+/**
+ * 🌊 Initialize Flow Section (Collapsible Steps)
+ */
+function initFlowSection() {
+    const steps = document.querySelectorAll('.collapsible-step');
+    steps.forEach(step => {
+        step.addEventListener('click', () => {
+            step.classList.toggle('expanded');
+        });
+    });
 }
 
 /**

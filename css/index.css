@@ -496,7 +496,7 @@ section {
     background: var(--color-dark-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
     display: flex;
     align-items: center;
     gap: var(--space-md);
@@ -935,7 +935,43 @@ section {
     font-family: var(--font-headline);
     font-size: var(--text-h3);
     color: var(--color-white);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flow-chevron {
+    font-size: 0.8rem;
+    color: var(--color-gray-light);
+    transition: transform 0.3s ease;
+}
+
+.flow-step.expanded .flow-chevron {
+    transform: rotate(180deg);
+}
+
+.flow-desc-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.flow-step.expanded .flow-desc-wrapper {
+    max-height: 150px;
+    opacity: 1;
+    margin-top: var(--space-sm);
+}
+
+.flow-step.collapsible-step {
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.flow-step.collapsible-step:hover {
+    border-color: var(--color-gold);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
 }
 
 .flow-desc {
