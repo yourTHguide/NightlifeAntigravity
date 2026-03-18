@@ -85,19 +85,20 @@ function initSelectNightCards() {
     const featuresEl = document.getElementById('expansion-features');
     const galleryEl = document.getElementById('expansion-gallery');
     const timeEl = document.getElementById('expansion-time');
+    const locationEl = document.getElementById('expansion-location');
     const priceEl = document.getElementById('expansion-price');
     const bookBtn = document.getElementById('expansion-book-btn');
 
     // Content Data Mapping based on requirement
     const nightData = {
         'Thursday': {
-            desc: "A more intimate, social-led night designed for connection, conversation, and effortless flow. Perfect for solo joiners, nomads, and those who want a relaxed but elevated night out in Bangkok.",
+            desc: "Relaxed. Social. Easy to connect.\n\nBest for expats, nomads, solo joiners, and social nights.",
             features: [
                 "3 curated venues",
                 "Transportation included (if needed)",
-                "Smaller, more personal group",
                 "Social-first atmosphere",
-                "Relaxed pacing with natural flow"
+                "Relaxed pacing",
+                "Ends around midnight"
             ],
             gallery: [
                 "assets/images/club-crawl.jpg",
@@ -108,17 +109,18 @@ function initSelectNightCards() {
                 "assets/images/Chupa.jpg"
             ],
             time: "Every Thursday\n9:00 PM – ~12:30 AM",
+            location: "Thonglor / Ekkamai area — exact meeting point shared after booking",
             price: "Male: 1,200 THB\nFemale: 1,000 THB",
             bookingValue: "4" // Maps to a potential Thursday option in booking wizard later. Will use 5 for now as fallback.
         },
         'Friday': {
-            desc: "A high-energy guided nightlife experience across Bangkok’s top venues. Designed for smooth flow, strong group energy, and an unforgettable night from start to peak.",
+            desc: "The perfect balance of social and party.\n\nBest for the full guided nightlife experience.",
             features: [
                 "4 curated venues",
                 "Private van included",
                 "Hosted group experience",
                 "Strong group energy",
-                "Party-driven escalation from start to peak"
+                "Full guided nightlife experience"
             ],
             gallery: [
                 "assets/images/IMG_4924.jpg",
@@ -131,17 +133,18 @@ function initSelectNightCards() {
                 "assets/images/tempImagepFGk6y.remini-enhanced.jpg"
             ],
             time: "Every Friday\n9:30 PM – Late",
+            location: "Lower Sukhumvit area — exact meeting point shared after booking",
             price: "Male: 1,500 THB\nFemale: 1,200 THB",
             bookingValue: "5"
         },
         'Saturday': {
-            desc: "A high-energy guided nightlife experience across Bangkok’s top venues. Designed for smooth flow, strong group energy, and an unforgettable night from start to peak.",
+            desc: "High energy. Peak night. Biggest crowd.\n\nBest for the full party experience and our signature Saturday vibe.",
             features: [
-                "4 curated venues",
+                "4 top venues",
                 "Private van included",
-                "Hosted group experience",
-                "Strong group energy",
-                "Party-driven escalation from start to peak"
+                "Highest energy night",
+                "Best for full party experience",
+                "Signature Saturday vibe"
             ],
             gallery: [
                 "assets/images/Chupa group shot.JPG",
@@ -155,6 +158,7 @@ function initSelectNightCards() {
                 "assets/images/tempImagev201zt.remini-enhanced.jpg"
             ],
             time: "Every Saturday\n9:30 PM – Late",
+            location: "Sukhumvit 11 / Asoke area — exact meeting point shared after booking",
             price: "Male: 1,500 THB\nFemale: 1,200 THB",
             bookingValue: "6"
         }
@@ -191,6 +195,7 @@ function initSelectNightCards() {
             featuresEl.innerHTML = data.features.map(f => `<li>${f}</li>`).join('');
             galleryEl.innerHTML = data.gallery.map(img => `<img src="${img}" alt="${dayStr} Event" class="expansion-gallery-img">`).join('');
             timeEl.innerText = data.time;
+            locationEl.innerText = data.location;
             priceEl.innerText = data.price;
 
             // Setup book button bridging
