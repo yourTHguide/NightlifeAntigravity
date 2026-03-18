@@ -3,6 +3,22 @@
  * Handles UI initialization, event listeners, and data binding.
  */
 
+// ═══════════════════════════════════════════════════
+//  GLOBAL: URL Parameter Tracking
+//  Reads ?night=thursday|friday|saturday  → Smart Traffic
+//  Reads ?source=meetup|nomadtable|...    → CRM Source Tracking
+// ═══════════════════════════════════════════════════
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const TRACKED_SOURCE = URL_PARAMS.get('source') || null;  // e.g. 'meetup', 'nomadtable', 'instagram'
+const TRACKED_NIGHT = URL_PARAMS.get('night') || null;     // e.g. 'thursday', 'friday', 'saturday'
+
+if (TRACKED_SOURCE) {
+    console.log(`📡 CRM Source captured: ${TRACKED_SOURCE}`);
+}
+if (TRACKED_NIGHT) {
+    console.log(`🎯 Smart Traffic: auto-routing to ${TRACKED_NIGHT}`);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🌃 Bangkok Club Crawl: System Initialized.');
 
@@ -17,7 +33,39 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatAssistant();
     initScrollAnimations();
     initEventListeners();
+
+    // ——— Smart Traffic: Auto-expand night modal from URL param ———
+    if (TRACKED_NIGHT) {
+        // Slight delay to ensure DOM is fully painted
+        setTimeout(() => {
+            triggerNightExpansion(TRACKED_NIGHT);
+        }, 600);
+    }
 });
+
+/**
+ * 🎯 Smart Traffic: Programmatically trigger a night card expansion
+ * Called from URL param routing (?night=thursday|friday|saturday)
+ */
+function triggerNightExpansion(nightParam) {
+    const nightKey = nightParam.toLowerCase();
+    const card = document.querySelector(`.night-card[data-night="${nightKey}"]`);
+
+    if (card) {
+        // Scroll to the Select Your Night section first
+        const section = document.getElementById('select-night');
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Trigger the card click after scroll finishes
+        setTimeout(() => {
+            card.click();
+        }, 500);
+    } else {
+        console.warn(`⚠️ Smart Traffic: No card found for night="${nightKey}"`);
+    }
+}
 
 /**
  * 🌠 Initialize "Select Your Night" Card Expansion
@@ -931,7 +979,8 @@ function initBookingWizard() {
                     male: maleCount,
                     female: femaleCount
                 },
-                promo_code: appliedPromo ? appliedPromo.code : null
+                promo_code: appliedPromo ? appliedPromo.code : null,
+                source_channel: TRACKED_SOURCE || null  // CRM: captured from ?source= URL param
             };
 
             console.log('📋 Checkout payload:', payload);

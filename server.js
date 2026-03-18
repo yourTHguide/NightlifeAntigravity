@@ -227,7 +227,7 @@ app.use(express.static(path.join(__dirname)));
 // ═══════════════════════════════════════════════════
 app.post('/api/create-checkout', async (req, res) => {
     try {
-        const { guest, event_date, pax, promo_code, event_day } = req.body;
+        const { guest, event_date, pax, promo_code, event_day, source_channel } = req.body;
 
         // ——— 1. Validate Input ———
         if (!guest?.first_name || !guest?.phone || !guest?.email) {
@@ -332,7 +332,7 @@ app.post('/api/create-checkout', async (req, res) => {
                     email: guest.email,
                     phone: guest.phone,
                     tags: ['Interested'],
-                    source: 'website'
+                    source: source_channel || 'website'
                 })
                 .select('id')
                 .single();
@@ -420,7 +420,8 @@ app.post('/api/create-checkout', async (req, res) => {
                 event_type: isThursday ? 'social_night' : 'club_crawl',
                 phone: guest.phone,
                 payment_status: 'Pending',
-                promo_code: validatedPromoCode || ''
+                promo_code: validatedPromoCode || '',
+                source_channel: source_channel || 'web_direct'
             },
             success_url: `${CLIENT_URL}/booking-success.html?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${CLIENT_URL}/index.html?booking=cancelled`
@@ -488,6 +489,7 @@ app.post('/api/stripe-webhook', async (req, res) => {
         const guestId = session.metadata?.guest_id;
         const eventDate = session.metadata?.event_date;
         const promoCode = session.metadata?.promo_code;
+        const sourceChannel = session.metadata?.source_channel;
 
         if (!bookingId) {
             console.error('❌ Webhook: No booking_id in session metadata');
@@ -540,7 +542,10 @@ app.post('/api/stripe-webhook', async (req, res) => {
 
                     await supabase
                         .from('guests')
-                        .update({ tags })
+                        .update({
+                            tags,
+                            ...(sourceChannel && sourceChannel !== 'web_direct' ? { source: sourceChannel } : {})
+                        })
                         .eq('id', guestId);
 
                     console.log(`🏷️ Guest ${guestId} tags updated: [${tags.join(', ')}]`);
