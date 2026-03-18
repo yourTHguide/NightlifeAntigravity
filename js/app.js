@@ -100,12 +100,11 @@ function initSelectNightCards() {
                 "Ends around midnight"
             ],
             gallery: [
-                "assets/images/club-crawl.jpg",
-                "assets/images/Rhodes.jpg",
-                "assets/images/tempImageDv0DNJ.remini-enhanced.jpg",
-                "assets/images/Singsing.png",
+                "assets/images/image.remini-enhanced (9).jpg",
+                "assets/images/Rhodes group pic.JPG",
+                "assets/images/tempImagetMAqsL.remini-enhanced.jpg",
                 "assets/images/tempImageVg9T4j.remini-enhanced.jpg",
-                "assets/images/Chupa.jpg"
+                "assets/images/tempImagege7ud6.remini-enhanced.jpg"
             ],
             time: "Every Thursday\n9:00 PM – ~12:30 AM",
             location: "Thonglor / Ekkamai area — exact meeting point shared after booking",
