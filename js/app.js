@@ -886,6 +886,22 @@ function initBookingWizard() {
     }
 
     // Step 3: Guest Blocks Logic
+    function updateGuestBlockPrices() {
+        const dayInput = document.querySelector('input[name="event-day"]:checked');
+        const isThursday = dayInput && dayInput.value === '4';
+        const malePrice = isThursday ? '1,200' : '1,500';
+        const femalePrice = isThursday ? '1,000' : '1,200';
+
+        const selects = document.querySelectorAll('.guest-gender-select');
+        selects.forEach(select => {
+            const options = select.querySelectorAll('option');
+            options.forEach(opt => {
+                if (opt.value === 'male') opt.textContent = `Male (฿${malePrice})`;
+                if (opt.value === 'female') opt.textContent = `Female (฿${femalePrice})`;
+            });
+        });
+    }
+
     function initGuestBlocks() {
         const container = document.getElementById('guest-blocks-container');
         const addBtn = document.getElementById('add-guest-btn');
@@ -893,6 +909,8 @@ function initBookingWizard() {
 
         if (container.children.length === 0) {
             addGuestBlock('female', 1); // Start with 1 Female by default
+        } else {
+            updateGuestBlockPrices();
         }
 
         addBtn.onclick = () => addGuestBlock('male', 1);
@@ -905,12 +923,17 @@ function initBookingWizard() {
 
     function addGuestBlock(gender = 'male', count = 1) {
         const container = document.getElementById('guest-blocks-container');
+        const dayInput = document.querySelector('input[name="event-day"]:checked');
+        const isThursday = dayInput && dayInput.value === '4';
+        const malePrice = isThursday ? '1,200' : '1,500';
+        const femalePrice = isThursday ? '1,000' : '1,200';
+
         const block = document.createElement('div');
         block.className = 'guest-block';
         block.innerHTML = `
             <select class="guest-gender-select" style="flex: 2; padding: var(--space-sm); background: var(--color-dark-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
-                <option value="male" ${gender === 'male' ? 'selected' : ''}>Male (฿1,500)</option>
-                <option value="female" ${gender === 'female' ? 'selected' : ''}>Female (฿1,200)</option>
+                <option value="male" ${gender === 'male' ? 'selected' : ''}>Male (฿${malePrice})</option>
+                <option value="female" ${gender === 'female' ? 'selected' : ''}>Female (฿${femalePrice})</option>
             </select>
             <input type="number" class="guest-count-input" value="${count}" min="1" max="10" style="width: 60px; padding: var(--space-sm); background: var(--color-dark-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
             <button type="button" class="remove-guest-btn">&times;</button>
