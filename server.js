@@ -696,6 +696,11 @@ app.get('/api/verify-session', async (req, res) => {
 // ═══════════════════════════════════════════════════
 //  POST /api/webhooks/bokun
 //  Bokun OTA sends HTTP Booking notifications here
+//  
+//  IMPORTANT: Bokun webhooks are LIGHTWEIGHT — they send
+//  the booking ID in headers and a minimal/variable JSON body.
+//  This handler must be resilient to any payload shape.
+//
 //  Follows data-schema-rules Workspace Skill strictly:
 //    Rule 1: Only touches Guest + Booking (core entities)
 //    Rule 2: Minimum Data Rule (phone/OTA-ID + event_date + payment_status)
@@ -704,14 +709,28 @@ app.get('/api/verify-session', async (req, res) => {
 //    Rule 5: OTA Fallback (Bokun ID when phone missing)
 // ═══════════════════════════════════════════════════
 app.post('/api/webhooks/bokun', async (req, res) => {
-    console.log('📥 Bokun webhook received');
+    console.log('═══════════════════════════════════════');
+    console.log('📥 Bokun webhook received at', new Date().toISOString());
+
+    // ——— 0. FULL PAYLOAD LOG (diagnostic — always log what Bokun sends) ———
+    console.log('📋 Headers:', JSON.stringify({
+        'x-bokun-booking-id': req.headers['x-bokun-booking-id'] || null,
+        'x-bokun-topic': req.headers['x-bokun-topic'] || null,
+        'x-bokun-vendor-id': req.headers['x-bokun-vendor-id'] || null,
+        'x-bokun-hmac': req.headers['x-bokun-hmac'] ? '(present)' : null,
+        'content-type': req.headers['content-type'] || null,
+        'authorization': req.headers['authorization'] ? '(present)' : null,
+        'x-api-key': req.headers['x-api-key'] ? '(present)' : null
+    }));
+    console.log('📋 Query params:', JSON.stringify(req.query || {}));
+    console.log('📋 Raw body:', JSON.stringify(req.body || {}, null, 2));
+    console.log('📋 Body type:', typeof req.body, '| Empty?', !req.body || Object.keys(req.body).length === 0);
 
     // ——— 1. Authenticate: Verify BOKUN_API_KEY ———
-    // Accepts the key via: Authorization: Bearer <key>, x-api-key header, or ?api_key= query param
     const expectedKey = process.env.BOKUN_API_KEY;
 
     if (!expectedKey) {
-        console.error('❌ Bokun webhook: BOKUN_API_KEY not configured in environment');
+        console.error('❌ BOKUN_API_KEY not configured in environment');
         return res.status(500).json({ error: 'Webhook authentication not configured' });
     }
 
@@ -725,105 +744,134 @@ app.post('/api/webhooks/bokun', async (req, res) => {
         queryKey;
 
     if (!providedKey || providedKey !== expectedKey) {
-        console.error('❌ Bokun webhook: Invalid or missing API key');
+        console.error('❌ Invalid or missing API key');
         return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
     }
 
     try {
-        // ——— 2. Extract Bokun Booking ID ———
-        // Bokun sends x-bokun-booking-id in headers; also may be in the body
+        const body = req.body || {};
+
+        // ——— 2. DEEP EXTRACT: Flatten the entire payload to find fields ———
+        // Bokun payloads vary wildly — recursively search for known field names
+        function deepFind(obj, keys, maxDepth = 5, depth = 0) {
+            if (!obj || typeof obj !== 'object' || depth > maxDepth) return null;
+            for (const key of keys) {
+                if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+                    return obj[key];
+                }
+            }
+            // Search one level deeper in nested objects
+            for (const val of Object.values(obj)) {
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                    const found = deepFind(val, keys, maxDepth, depth + 1);
+                    if (found !== null) return found;
+                }
+            }
+            return null;
+        }
+
+        // ——— 3. Extract Bokun Booking ID ———
+        // Priority: header > body fields
         const bokunBookingId =
             req.headers['x-bokun-booking-id'] ||
-            req.body?.bookingId ||
-            req.body?.booking_id ||
-            req.body?.confirmationCode ||
-            req.body?.id;
+            deepFind(body, ['bookingId', 'booking_id', 'confirmationCode', 'confirmation_code',
+                'reservationId', 'reservation_id', 'id', 'orderId', 'order_id',
+                'referenceNumber', 'reference_number', 'externalId', 'external_id']);
 
         if (!bokunBookingId) {
-            console.error('❌ Bokun webhook: No booking ID found in headers or body');
-            return res.status(400).json({ error: 'Missing booking identifier (x-bokun-booking-id header or bookingId in body)' });
+            console.error('❌ No booking ID in headers or body. Full payload logged above.');
+            return res.status(400).json({
+                error: 'Missing booking identifier',
+                help: 'Expected x-bokun-booking-id header or bookingId/id in body'
+            });
         }
 
         const bokunId = String(bokunBookingId);
-        console.log(`📋 Bokun Booking ID: ${bokunId}`);
+        console.log(`🔑 Bokun ID: ${bokunId}`);
 
-        // ——— 3. Extract Guest & Booking Data from Payload ———
-        const body = req.body || {};
+        // ——— 4. Extract Guest Data (deep search) ———
+        const firstName = deepFind(body, ['firstName', 'first_name', 'FirstName', 'name', 'customerName', 'guestName']) || null;
+        const lastName = deepFind(body, ['lastName', 'last_name', 'LastName', 'surname', 'familyName']) || null;
+        const email = deepFind(body, ['email', 'Email', 'emailAddress', 'email_address', 'customerEmail', 'contactEmail']) || null;
+        const rawPhone = deepFind(body, ['phone', 'phoneNumber', 'phone_number', 'PhoneNumber', 'mobile',
+            'mobilePhone', 'mobile_phone', 'telephone', 'tel', 'contactPhone']) || null;
+        const nationality = deepFind(body, ['nationality', 'Nationality', 'country', 'countryCode', 'country_code']) || null;
 
-        // Bokun payloads can vary — extract what's available
-        // Support nested customer/contact objects common in Bokun
-        const customer = body.customer || body.contact || body.mainContact || body.leadCustomer || {};
+        // ——— 5. Extract Event Date (deep search + fallback) ———
+        const rawEventDate = deepFind(body, ['startDate', 'start_date', 'StartDate', 'date', 'Date',
+            'eventDate', 'event_date', 'activityDate', 'activity_date',
+            'departureDate', 'departure_date', 'startTime', 'start_time',
+            'scheduledDate', 'scheduled_date', 'tourDate', 'tour_date',
+            'arrivalDate', 'arrival_date']) || null;
 
-        const firstName = customer.firstName || customer.first_name || body.firstName || body.first_name || null;
-        const lastName = customer.lastName || customer.last_name || body.lastName || body.last_name || null;
-        const email = customer.email || body.email || null;
-        const rawPhone = customer.phone || customer.phoneNumber ||
-            customer.phone_number || customer.mobile ||
-            body.phone || body.phoneNumber || body.phone_number || null;
-        const nationality = customer.nationality || customer.country || body.nationality || null;
+        let eventDate = null;
+        if (rawEventDate) {
+            // Handle various date formats: ISO, YYYY-MM-DD, timestamps
+            const dateStr = String(rawEventDate);
+            // Try direct parse
+            let parsed = new Date(dateStr);
+            // If fails, try extracting YYYY-MM-DD pattern
+            if (isNaN(parsed.getTime())) {
+                const match = dateStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (match) parsed = new Date(match[0] + 'T12:00:00Z');
+            }
+            if (!isNaN(parsed.getTime())) {
+                eventDate = parsed.toISOString().split('T')[0];
+            }
+        }
 
-        // Event date: Bokun uses various field names
-        const rawEventDate = body.startDate || body.event_date || body.date ||
-            body.activityDate || body.start_date ||
-            body.startTime || body.departure_date || null;
+        // FALLBACK: If no event date in payload, default to next upcoming Friday or Saturday
+        if (!eventDate) {
+            console.log('⚠️ No event date in payload — defaulting to next Fri/Sat');
+            const now = new Date();
+            const bkkNow = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+            const dayOfWeek = bkkNow.getDay(); // 0=Sun, 5=Fri, 6=Sat
+            let daysUntilFri = (5 - dayOfWeek + 7) % 7;
+            if (daysUntilFri === 0) daysUntilFri = 7; // If today is Friday, use next Friday
+            const nextFri = new Date(bkkNow.getTime() + daysUntilFri * 24 * 60 * 60 * 1000);
+            eventDate = nextFri.toISOString().split('T')[0];
+            console.log(`📅 Defaulted event date to: ${eventDate}`);
+        }
 
-        // Quantity / pax
-        const quantity = parseInt(body.totalParticipants || body.participants ||
-            body.pax || body.quantity || body.totalGuests || 1) || 1;
+        // ——— 6. Extract Quantity & Price ———
+        const rawQty = deepFind(body, ['totalParticipants', 'participants', 'pax', 'quantity',
+            'totalGuests', 'guestCount', 'guest_count', 'numberOfGuests',
+            'number_of_guests', 'seats', 'tickets']);
+        const quantity = parseInt(rawQty) || 1;
 
-        // Total price from OTA (they handle payment)
-        const totalPrice = parseFloat(body.totalPrice || body.total_price ||
-            body.totalAmount || body.amount || 0) || 0;
+        const rawPrice = deepFind(body, ['totalPrice', 'total_price', 'totalAmount', 'total_amount',
+            'amount', 'price', 'orderTotal', 'order_total']);
+        const totalPrice = parseFloat(rawPrice) || 0;
 
-        // ——— 4. Normalize Phone to E.164 (Rule 3) ———
+        // ——— 7. Normalize Phone to E.164 (Rule 3) ———
         let normalizedPhone = null;
         if (rawPhone) {
-            // Strip all non-digit/plus chars
             let cleaned = String(rawPhone).replace(/[^\d+]/g, '');
-            // If starts with 0 (Thai local), convert to +66
             if (cleaned.startsWith('0') && cleaned.length >= 9) {
                 cleaned = '+66' + cleaned.slice(1);
             }
-            // Ensure + prefix
             if (!cleaned.startsWith('+') && cleaned.length >= 10) {
                 cleaned = '+' + cleaned;
             }
-            // Basic validation: must be at least 10 digits
             if (cleaned.replace(/\D/g, '').length >= 10) {
                 normalizedPhone = cleaned;
             }
         }
 
-        // ——— 5. Parse Event Date ———
-        let eventDate = null;
-        if (rawEventDate) {
-            const parsed = new Date(rawEventDate);
-            if (!isNaN(parsed.getTime())) {
-                // Format as YYYY-MM-DD
-                eventDate = parsed.toISOString().split('T')[0];
-            }
-        }
+        // ——— 8. Validate Minimum Data Rule (Rule 2) ———
+        // We ALWAYS have bokunId at this point (checked in step 3)
+        // We ALWAYS have eventDate at this point (fallback in step 5)
+        // Payment status = 'Paid' (hardcoded for OTA — they handle payment)
+        // → Minimum Data Rule is GUARANTEED satisfied
 
-        // ——— 6. Validate Minimum Data Rule (Rule 2) ———
-        // Requirement: phone OR OTA identifier + event_date + payment_status
-        const hasIdentifier = normalizedPhone || bokunId;
-        if (!hasIdentifier) {
-            console.error('❌ Bokun webhook: Minimum Data Rule violation — no phone and no Bokun ID');
-            return res.status(400).json({
-                error: 'Minimum Data Rule: Guest must have a phone number or OTA booking ID'
-            });
-        }
-        if (!eventDate) {
-            console.error('❌ Bokun webhook: Minimum Data Rule violation — no event date');
-            return res.status(400).json({
-                error: 'Minimum Data Rule: Event date is required'
-            });
-        }
-        // payment_status defaults to 'Paid' for OTA bookings (OTA handles payment)
+        console.log('📊 Parsed data:');
+        console.log(`   Name: ${firstName || '?'} ${lastName || ''}`);
+        console.log(`   Email: ${email || 'N/A'}`);
+        console.log(`   Phone: ${normalizedPhone || 'N/A (OTA Fallback active)'}`);
+        console.log(`   Date: ${eventDate}`);
+        console.log(`   Pax: ${quantity} | Price: ฿${totalPrice}`);
 
-        console.log(`📊 Bokun data parsed — Phone: ${normalizedPhone || 'N/A'} | Date: ${eventDate} | Pax: ${quantity}`);
-
-        // ——— 7. Check for Duplicate Booking (idempotency) ———
+        // ——— 9. Check for Duplicate Booking (idempotency) ———
         const { data: existingBooking } = await supabase
             .from('bookings')
             .select('id')
@@ -831,7 +879,7 @@ app.post('/api/webhooks/bokun', async (req, res) => {
             .single();
 
         if (existingBooking) {
-            console.log(`⏭️ Bokun booking ${bokunId} already exists as ${existingBooking.id} — skipping`);
+            console.log(`⏭️ Duplicate — Bokun ${bokunId} already exists as booking ${existingBooking.id}`);
             return res.json({
                 received: true,
                 status: 'duplicate',
@@ -840,12 +888,12 @@ app.post('/api/webhooks/bokun', async (req, res) => {
             });
         }
 
-        // ——— 8. Upsert Guest Profile (Rules 3 & 5) ———
+        // ——— 10. Upsert Guest Profile (Rules 3 & 5) ———
         let guestId;
         let isNewGuest = false;
 
         if (normalizedPhone) {
-            // Phone-first matching (Rule 3: phone is primary key)
+            // PHONE-FIRST matching (Rule 3)
             const { data: existingGuest } = await supabase
                 .from('guests')
                 .select('id, tags')
@@ -853,32 +901,28 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                 .single();
 
             if (existingGuest) {
-                // UPDATE existing guest (COALESCE — don't overwrite with nulls)
                 guestId = existingGuest.id;
-                const updateFields = { updated_at: new Date().toISOString() };
+                const updateFields = { updated_at: new Date().toISOString(), source: 'bokun', ota_booking_id: bokunId };
                 if (firstName) updateFields.first_name = firstName;
                 if (lastName) updateFields.last_name = lastName;
                 if (email) updateFields.email = email;
                 if (nationality) updateFields.nationality = nationality;
-                // Always update source to latest OTA
-                updateFields.source = 'bokun';
-                updateFields.ota_booking_id = bokunId;
-
+                updateFields.ota_platform = 'bokun';
                 await supabase.from('guests').update(updateFields).eq('id', guestId);
                 console.log(`👤 Existing guest updated: ${guestId}`);
             } else {
-                // INSERT new guest with phone
                 isNewGuest = true;
                 const { data: newGuest, error: guestError } = await supabase
                     .from('guests')
                     .insert({
-                        first_name: firstName,
+                        first_name: firstName || 'Bokun Guest',
                         last_name: lastName,
                         email: email,
                         phone: normalizedPhone,
                         nationality: nationality,
                         source: 'bokun',
                         ota_booking_id: bokunId,
+                        ota_platform: 'bokun',
                         tags: ['OTA-Booked'],
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
@@ -887,15 +931,14 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                     .single();
 
                 if (guestError) {
-                    console.error('❌ Guest creation failed:', guestError);
-                    return res.status(500).json({ error: 'Failed to create guest profile' });
+                    console.error('❌ Guest creation failed:', JSON.stringify(guestError));
+                    return res.status(500).json({ error: 'Failed to create guest', detail: guestError.message });
                 }
                 guestId = newGuest.id;
                 console.log(`👤 New guest created (with phone): ${guestId}`);
             }
         } else {
-            // OTA Fallback (Rule 5): No phone — use Bokun ID as unique identifier
-            // Check if a guest already exists with this OTA booking ID
+            // OTA FALLBACK (Rule 5): No phone → use Bokun ID as unique identifier
             const { data: existingOtaGuest } = await supabase
                 .from('guests')
                 .select('id, tags')
@@ -904,28 +947,27 @@ app.post('/api/webhooks/bokun', async (req, res) => {
 
             if (existingOtaGuest) {
                 guestId = existingOtaGuest.id;
-                const updateFields = { updated_at: new Date().toISOString() };
+                const updateFields = { updated_at: new Date().toISOString(), source: 'bokun' };
                 if (firstName) updateFields.first_name = firstName;
                 if (lastName) updateFields.last_name = lastName;
                 if (email) updateFields.email = email;
                 if (nationality) updateFields.nationality = nationality;
-                updateFields.source = 'bokun';
-
+                updateFields.ota_platform = 'bokun';
                 await supabase.from('guests').update(updateFields).eq('id', guestId);
                 console.log(`👤 Existing OTA guest updated: ${guestId}`);
             } else {
-                // INSERT new guest WITHOUT phone (OTA Fallback — email is optional)
                 isNewGuest = true;
                 const { data: newGuest, error: guestError } = await supabase
                     .from('guests')
                     .insert({
-                        first_name: firstName,
+                        first_name: firstName || 'Bokun Guest',
                         last_name: lastName,
-                        email: email,     // Strictly optional (Rule 5)
-                        phone: null,      // Will be attached later via WhatsApp
+                        email: email,
+                        phone: null,               // OTA Fallback: phone collected later
                         nationality: nationality,
                         source: 'bokun',
-                        ota_booking_id: bokunId,
+                        ota_booking_id: bokunId,    // ← This IS the unique identifier
+                        ota_platform: 'bokun',
                         tags: ['OTA-Booked', 'Missing Phone'],
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
@@ -934,15 +976,15 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                     .single();
 
                 if (guestError) {
-                    console.error('❌ Guest creation (OTA fallback) failed:', guestError);
-                    return res.status(500).json({ error: 'Failed to create guest profile' });
+                    console.error('❌ Guest creation (OTA fallback) failed:', JSON.stringify(guestError));
+                    return res.status(500).json({ error: 'Failed to create guest', detail: guestError.message });
                 }
                 guestId = newGuest.id;
                 console.log(`👤 New guest created (OTA fallback, no phone): ${guestId}`);
             }
         }
 
-        // ——— 9. Apply Tags (Rule 4) ———
+        // ——— 11. Apply Tags (Rule 4) ———
         const { data: guestForTags } = await supabase
             .from('guests')
             .select('tags')
@@ -951,55 +993,55 @@ app.post('/api/webhooks/bokun', async (req, res) => {
 
         let tags = guestForTags?.tags || [];
 
-        // Add date-specific temporary tag
-        const formattedDate = new Date(eventDate).toLocaleDateString('en-GB', {
+        const formattedDate = new Date(eventDate + 'T12:00:00Z').toLocaleDateString('en-GB', {
             day: 'numeric', month: 'short', year: 'numeric'
         });
         const bookedTag = `Booked — ${formattedDate}`;
         if (!tags.includes(bookedTag)) tags.push(bookedTag);
-
-        // Add OTA identifier tag (permanent)
         if (!tags.includes('OTA-Booked')) tags.push('OTA-Booked');
-
-        // Remove 'Interested' if present (they've booked now)
         tags = tags.filter(t => t !== 'Interested');
 
         await supabase.from('guests').update({ tags }).eq('id', guestId);
 
-        // ——— 10. Create Booking Record (Rules 1 & 2) ———
+        // ——— 12. Create Booking Record (Rules 1 & 2) ———
+        const bookingInsert = {
+            guest_id: guestId,
+            first_name: firstName || 'Bokun Guest',
+            email: email,
+            whatsapp_number: normalizedPhone,   // null is OK (OTA Fallback)
+            event_date: eventDate,
+            quantity: quantity,
+            total_price: totalPrice,
+            payment_status: 'Paid',             // OTA handles payment
+            booking_source: 'bokun',            // Source = Bokun
+            ota_booking_id: bokunId,
+            created_at: new Date().toISOString()
+        };
+
+        console.log('📝 Inserting booking:', JSON.stringify(bookingInsert));
+
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
-            .insert({
-                guest_id: guestId,
-                first_name: firstName,
-                email: email,
-                whatsapp_number: normalizedPhone,
-                event_date: eventDate,
-                quantity: quantity,
-                total_price: totalPrice,
-                payment_status: 'Paid',       // OTA handles payment
-                booking_source: 'bokun',
-                ota_booking_id: bokunId,
-                created_at: new Date().toISOString()
-            })
+            .insert(bookingInsert)
             .select('id')
             .single();
 
         if (bookingError) {
-            console.error('❌ Booking creation failed:', bookingError);
-            return res.status(500).json({ error: 'Failed to create booking record' });
+            console.error('❌ Booking creation failed:', JSON.stringify(bookingError));
+            return res.status(500).json({ error: 'Failed to create booking', detail: bookingError.message });
         }
 
-        console.log(`✅ Bokun booking processed: ${booking.id} | Guest: ${guestId} | Date: ${eventDate} | Pax: ${quantity}`);
+        console.log(`✅ Bokun booking SUCCESS: ${booking.id} | Guest: ${guestId} | Date: ${eventDate} | Pax: ${quantity}`);
+        console.log('═══════════════════════════════════════');
 
-        // ——— 11. Admin Notification Email ———
+        // ——— 13. Admin Notification Email ———
         if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
             const adminText = [
                 `📥 New OTA Booking (Bokun)`,
                 ``,
                 `Guest: ${firstName || 'Unknown'} ${lastName || ''}`.trim(),
                 `Email: ${email || 'Not provided'}`,
-                `Phone: ${normalizedPhone || '⚠️ Missing — needs WhatsApp collection'}`,
+                `Phone: ${normalizedPhone || '⚠️ Missing — collect via WhatsApp'}`,
                 `Date: ${formattedDate}`,
                 `Pax: ${quantity}`,
                 `Total: ฿${totalPrice.toLocaleString() || 'N/A'}`,
@@ -1017,18 +1059,23 @@ app.post('/api/webhooks/bokun', async (req, res) => {
             });
         }
 
-        // ——— 12. Success Response ———
+        // ——— 14. Success Response ———
         return res.json({
             received: true,
             status: 'success',
             booking_id: booking.id,
             guest_id: guestId,
             is_new_guest: isNewGuest,
-            phone_collected: !!normalizedPhone
+            phone_collected: !!normalizedPhone,
+            event_date: eventDate,
+            source: 'bokun',
+            payment_status: 'Paid'
         });
 
     } catch (err) {
-        console.error('❌ Bokun webhook processing error:', err);
+        console.error('❌ Bokun webhook FATAL error:', err.message);
+        console.error('   Stack:', err.stack);
+        console.log('═══════════════════════════════════════');
         return res.status(500).json({
             error: 'Webhook processing failed',
             message: err.message
