@@ -1016,14 +1016,16 @@ app.post('/api/webhooks/bokun', async (req, res) => {
 
         let tags = guestForTags?.tags || [];
 
+        // Format date for display (used in tags and admin email)
+        const formattedDate = dateWasMissing
+            ? '⚠️ DATE MISSING'
+            : new Date(eventDate + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
         // Add OTA identifier tag (permanent)
         if (!tags.includes('OTA-Booked')) tags.push('OTA-Booked');
 
         // Add date-specific tag (only if real date, not sentinel)
         if (!dateWasMissing) {
-            const formattedDate = new Date(eventDate + 'T12:00:00Z').toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'short', year: 'numeric'
-            });
             const bookedTag = `Booked — ${formattedDate}`;
             if (!tags.includes(bookedTag)) tags.push(bookedTag);
         } else {
