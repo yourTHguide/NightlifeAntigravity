@@ -1047,7 +1047,7 @@ app.post('/api/webhooks/bokun', async (req, res) => {
             event_date: eventDate,
             quantity: quantity,
             total_price: totalPrice,
-            payment_status: 'Paid',             // OTA handles payment
+            payment_status: 'Confirmed',        // OTA-secured booking (guest paid via Bokun)
             booking_source: 'bokun',            // Source = Bokun
             ota_booking_id: bokunId,
             created_at: new Date().toISOString()
@@ -1104,7 +1104,7 @@ app.post('/api/webhooks/bokun', async (req, res) => {
             phone_collected: !!normalizedPhone,
             event_date: eventDate,
             source: 'bokun',
-            payment_status: 'Paid'
+            payment_status: 'Confirmed'
         });
 
     } catch (err) {
@@ -1243,18 +1243,18 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const bkkNow = new Date(now.getTime() + bkkOffset);
         const todayStr = bkkNow.toISOString().split('T')[0];
 
-        // Fetch ALL bookings from today onward (any confirmed status)
-        // Status values in DB: 'Paid', 'paid', 'completed', 'Pending', 'pending', 'Confirmed'
+        // Fetch ONLY confirmed bookings: 'Paid' (Stripe) or 'Confirmed' (Bokun OTA)
+        // This excludes 'Pending' (abandoned Stripe checkouts) to protect 7 PM cut-off accuracy
         const { data: bookings, error } = await supabase
             .from('bookings')
             .select('event_date, quantity, total_price, payment_status')
             .gte('event_date', todayStr)
-            .not('payment_status', 'in', '("cancelled","refunded","failed")')
+            .in('payment_status', ['Paid', 'Confirmed'])
             .order('event_date', { ascending: true });
 
         if (error) throw error;
 
-        // Group by date — count ALL non-cancelled bookings
+        // Group by date — ONLY paid/confirmed bookings count toward headcount
         const eventMap = {};
         (bookings || []).forEach(b => {
             const date = b.event_date;
@@ -1286,7 +1286,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             .from('bookings')
             .select('id')
             .eq('event_date', '1999-01-01')
-            .not('payment_status', 'in', '("cancelled","refunded","failed")');
+            .in('payment_status', ['Paid', 'Confirmed']);
 
         const events = Object.values(eventMap).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1323,11 +1323,11 @@ app.get('/api/admin/guests', adminAuth, async (req, res) => {
 // Auto-calculates core business metrics
 app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     try {
-        // Fetch all confirmed bookings (any non-cancelled status)
+        // Fetch ONLY paid/confirmed bookings for KPI calculations
         const { data: bookings, error: bErr } = await supabase
             .from('bookings')
             .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at')
-            .not('payment_status', 'in', '("cancelled","refunded","failed")');
+            .in('payment_status', ['Paid', 'Confirmed']);
 
         if (bErr) throw bErr;
 
