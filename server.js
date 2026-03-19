@@ -1243,17 +1243,18 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const bkkNow = new Date(now.getTime() + bkkOffset);
         const todayStr = bkkNow.toISOString().split('T')[0];
 
-        // Fetch all bookings with Paid status, from today onward
+        // Fetch ALL bookings from today onward (any confirmed status)
+        // Status values in DB: 'Paid', 'paid', 'completed', 'Pending', 'pending', 'Confirmed'
         const { data: bookings, error } = await supabase
             .from('bookings')
             .select('event_date, quantity, total_price, payment_status')
-            .eq('payment_status', 'Paid')
             .gte('event_date', todayStr)
+            .not('payment_status', 'in', '("cancelled","refunded","failed")')
             .order('event_date', { ascending: true });
 
         if (error) throw error;
 
-        // Group by date
+        // Group by date — count ALL non-cancelled bookings
         const eventMap = {};
         (bookings || []).forEach(b => {
             const date = b.event_date;
@@ -1264,12 +1265,12 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             eventMap[date].total_revenue += (b.total_price || 0);
         });
 
-        // Also add upcoming Thu/Fri/Sat dates for next 4 weeks even if 0 bookings
-        // (Thu = new schedule, Fri/Sat = standard schedule)
-        for (let i = 0; i < 28; i++) {
+        // Add upcoming dates for next 30 days — 6 days/week (every day except Monday)
+        // Bokun is open to book Tue-Sun
+        for (let i = 0; i < 30; i++) {
             const d = new Date(bkkNow.getTime() + i * 24 * 60 * 60 * 1000);
-            const day = d.getDay(); // 4=Thu, 5=Fri, 6=Sat
-            if (day === 4 || day === 5 || day === 6) {
+            const day = d.getDay(); // 0=Sun, 1=Mon, 2=Tue...6=Sat
+            if (day !== 1) { // Skip Monday only
                 const ds = d.toISOString().split('T')[0];
                 if (!eventMap[ds]) {
                     eventMap[ds] = { date: ds, paid_count: 0, total_revenue: 0 };
@@ -1285,7 +1286,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             .from('bookings')
             .select('id')
             .eq('event_date', '1999-01-01')
-            .eq('payment_status', 'Paid');
+            .not('payment_status', 'in', '("cancelled","refunded","failed")');
 
         const events = Object.values(eventMap).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1322,11 +1323,11 @@ app.get('/api/admin/guests', adminAuth, async (req, res) => {
 // Auto-calculates core business metrics
 app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     try {
-        // Fetch all paid bookings
+        // Fetch all confirmed bookings (any non-cancelled status)
         const { data: bookings, error: bErr } = await supabase
             .from('bookings')
             .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at')
-            .eq('payment_status', 'Paid');
+            .not('payment_status', 'in', '("cancelled","refunded","failed")');
 
         if (bErr) throw bErr;
 
