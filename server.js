@@ -797,40 +797,63 @@ app.post('/api/webhooks/bokun', async (req, res) => {
             'mobilePhone', 'mobile_phone', 'telephone', 'tel', 'contactPhone']) || null;
         const nationality = deepFind(body, ['nationality', 'Nationality', 'country', 'countryCode', 'country_code']) || null;
 
-        // ——— 5. Extract Event Date (deep search + fallback) ———
-        const rawEventDate = deepFind(body, ['startDate', 'start_date', 'StartDate', 'date', 'Date',
-            'eventDate', 'event_date', 'activityDate', 'activity_date',
-            'departureDate', 'departure_date', 'startTime', 'start_time',
-            'scheduledDate', 'scheduled_date', 'tourDate', 'tour_date',
-            'arrivalDate', 'arrival_date']) || null;
+        // ——— 5. Extract Event Date (aggressive deep search) ———
+        // Bokun uses many different field names — search exhaustively
+        const rawEventDate = deepFind(body, [
+            // Bokun common fields
+            'startDate', 'start_date', 'StartDate',
+            'bookingDate', 'booking_date', 'BookingDate',
+            'travelDate', 'travel_date', 'TravelDate',
+            'date', 'Date',
+            // Activity/tour fields
+            'eventDate', 'event_date', 'EventDate',
+            'activityDate', 'activity_date', 'ActivityDate',
+            'tourDate', 'tour_date', 'TourDate',
+            // Departure/arrival
+            'departureDate', 'departure_date', 'DepartureDate',
+            'arrivalDate', 'arrival_date', 'ArrivalDate',
+            // Time-based (may contain date)
+            'startTime', 'start_time', 'StartTime',
+            'scheduledDate', 'scheduled_date',
+            // Other OTA variants
+            'serviceDate', 'service_date',
+            'experienceDate', 'experience_date',
+            'pickupDate', 'pickup_date',
+            'checkinDate', 'checkin_date'
+        ]) || null;
 
         let eventDate = null;
+        let dateWasMissing = false;
+
         if (rawEventDate) {
-            // Handle various date formats: ISO, YYYY-MM-DD, timestamps
             const dateStr = String(rawEventDate);
-            // Try direct parse
+            // Try direct ISO parse
             let parsed = new Date(dateStr);
-            // If fails, try extracting YYYY-MM-DD pattern
+            // If fails, try extracting YYYY-MM-DD pattern from the string
             if (isNaN(parsed.getTime())) {
                 const match = dateStr.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
                 if (match) parsed = new Date(match[0] + 'T12:00:00Z');
+            }
+            // If still fails, try DD/MM/YYYY or MM/DD/YYYY patterns
+            if (isNaN(parsed.getTime())) {
+                const slashMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (slashMatch) parsed = new Date(`${slashMatch[3]}-${slashMatch[2]}-${slashMatch[1]}T12:00:00Z`);
+            }
+            // If still fails, try Unix timestamp (seconds or milliseconds)
+            if (isNaN(parsed.getTime()) && /^\d+$/.test(dateStr)) {
+                const ts = parseInt(dateStr);
+                parsed = new Date(ts > 1e12 ? ts : ts * 1000);
             }
             if (!isNaN(parsed.getTime())) {
                 eventDate = parsed.toISOString().split('T')[0];
             }
         }
 
-        // FALLBACK: If no event date in payload, default to next upcoming Friday or Saturday
+        // MISSING DATE FALLBACK: Do NOT guess. Use sentinel date + flag.
         if (!eventDate) {
-            console.log('⚠️ No event date in payload — defaulting to next Fri/Sat');
-            const now = new Date();
-            const bkkNow = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
-            const dayOfWeek = bkkNow.getDay(); // 0=Sun, 5=Fri, 6=Sat
-            let daysUntilFri = (5 - dayOfWeek + 7) % 7;
-            if (daysUntilFri === 0) daysUntilFri = 7; // If today is Friday, use next Friday
-            const nextFri = new Date(bkkNow.getTime() + daysUntilFri * 24 * 60 * 60 * 1000);
-            eventDate = nextFri.toISOString().split('T')[0];
-            console.log(`📅 Defaulted event date to: ${eventDate}`);
+            dateWasMissing = true;
+            eventDate = '1999-01-01'; // Sentinel: clearly invalid, flags for manual review
+            console.error('🚨 DATE MISSING — assigned sentinel 1999-01-01. Guest will be tagged ⚠️ NEEDS DATE.');
         }
 
         // ——— 6. Extract Quantity & Price ———
@@ -993,12 +1016,22 @@ app.post('/api/webhooks/bokun', async (req, res) => {
 
         let tags = guestForTags?.tags || [];
 
-        const formattedDate = new Date(eventDate + 'T12:00:00Z').toLocaleDateString('en-GB', {
-            day: 'numeric', month: 'short', year: 'numeric'
-        });
-        const bookedTag = `Booked — ${formattedDate}`;
-        if (!tags.includes(bookedTag)) tags.push(bookedTag);
+        // Add OTA identifier tag (permanent)
         if (!tags.includes('OTA-Booked')) tags.push('OTA-Booked');
+
+        // Add date-specific tag (only if real date, not sentinel)
+        if (!dateWasMissing) {
+            const formattedDate = new Date(eventDate + 'T12:00:00Z').toLocaleDateString('en-GB', {
+                day: 'numeric', month: 'short', year: 'numeric'
+            });
+            const bookedTag = `Booked — ${formattedDate}`;
+            if (!tags.includes(bookedTag)) tags.push(bookedTag);
+        } else {
+            // Flag for Founder Dashboard: date needs manual correction
+            if (!tags.includes('⚠️ NEEDS DATE')) tags.push('⚠️ NEEDS DATE');
+        }
+
+        // Remove 'Interested' — they've booked now
         tags = tags.filter(t => t !== 'Interested');
 
         await supabase.from('guests').update({ tags }).eq('id', guestId);
