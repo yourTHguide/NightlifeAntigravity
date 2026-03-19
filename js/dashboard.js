@@ -13,7 +13,10 @@
         guests: [],
         kpis: null,
         sortField: 'created_at',
-        sortDir: 'desc'
+        sortDir: 'desc',
+        today: null,
+        needsDateCount: 0,
+        autoRefreshTimer: null
     };
 
     const API_BASE = '/api/admin';
@@ -124,6 +127,7 @@
         loginScreen.style.display = 'none';
         dashboard.style.display = 'block';
         loadEvents();
+        startAutoRefresh();
     }
 
     // ═══ API ═══
@@ -151,18 +155,33 @@
         $('events-loading').style.display = 'flex';
         $('events-grid').style.display = 'none';
         $('events-empty').style.display = 'none';
+        var alertEl = $('events-alert');
+        if (alertEl) alertEl.style.display = 'none';
 
         try {
             const res = await apiFetch('/events');
             if (res.status === 401) return handleLogout();
             const data = await res.json();
             state.events = data.events || [];
+            state.today = data.today || null;
+            state.needsDateCount = data.needs_date_count || 0;
             renderEvents();
         } catch (err) {
             console.error('Events load error:', err);
         } finally {
             $('events-loading').style.display = 'none';
+            // Update last-refreshed timestamp
+            var ts = $('events-timestamp');
+            if (ts) ts.textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         }
+    }
+
+    // Auto-refresh events every 60 seconds
+    function startAutoRefresh() {
+        if (state.autoRefreshTimer) clearInterval(state.autoRefreshTimer);
+        state.autoRefreshTimer = setInterval(function () {
+            if (state.activeTab === 'events') loadEvents();
+        }, 60000);
     }
 
     function renderEvents() {
@@ -175,11 +194,21 @@
             return;
         }
 
-        // Get today in Bangkok time (UTC+7)
-        const now = new Date();
-        const bkkNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-        const todayStr = bkkNow.toISOString().split('T')[0];
+        // Use server-provided today (Bangkok time), fallback to client UTC+7
+        var todayStr = state.today;
+        if (!todayStr) {
+            var now = new Date();
+            var bkkNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+            todayStr = bkkNow.toISOString().split('T')[0];
+        }
 
+        // ⚠️ NEEDS DATE alert banner
+        var alertEl = $('events-alert');
+        if (alertEl && state.needsDateCount > 0) {
+            alertEl.style.display = 'flex';
+            alertEl.innerHTML = '<span>⚠️</span> <strong>' + state.needsDateCount + ' booking' +
+                (state.needsDateCount > 1 ? 's' : '') + '</strong> missing event date — check CRM for <code>⚠️ NEEDS DATE</code> tag';
+        }
         // Group events by week
         function getWeekLabel(dateStr) {
             const d = new Date(dateStr + 'T00:00:00');
@@ -221,8 +250,15 @@
 
         Object.keys(weekGroups).forEach(function (weekLabel) {
             var events = weekGroups[weekLabel];
+
+            // Calculate week totals
+            var weekPax = 0, weekRevenue = 0;
+            events.forEach(function (e) { weekPax += (e.paid_count || 0); weekRevenue += (e.total_revenue || 0); });
+
             html += '<div class="week-group">' +
-                '<div class="week-label">' + weekLabel + '</div>' +
+                '<div class="week-label">' + weekLabel +
+                '<span class="week-summary">' + weekPax + ' pax · ฿' + weekRevenue.toLocaleString() + '</span>' +
+                '</div>' +
                 '<div class="week-cards">';
 
             events.forEach(function (ev) {

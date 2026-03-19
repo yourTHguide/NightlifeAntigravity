@@ -1280,9 +1280,20 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         // Remove sentinel date (1999-01-01) from display
         delete eventMap['1999-01-01'];
 
+        // Count bookings with sentinel dates needing manual correction
+        const { data: needsDateBookings } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('event_date', '1999-01-01')
+            .eq('payment_status', 'Paid');
+
         const events = Object.values(eventMap).sort((a, b) => a.date.localeCompare(b.date));
 
-        return res.json({ events });
+        return res.json({
+            events,
+            today: todayStr,
+            needs_date_count: (needsDateBookings || []).length
+        });
     } catch (err) {
         console.error('❌ Admin events error:', err);
         return res.status(500).json({ error: 'Failed to load events' });

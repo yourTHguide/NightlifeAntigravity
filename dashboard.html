@@ -124,7 +124,9 @@
                     <div>
                         <h2 class="panel-title">Event Dashboard</h2>
                         <p class="panel-desc">7 PM cut-off decisions at a glance. Minimum = <strong>5 paid
-                                guests</strong>.</p>
+                                guests</strong>.
+                            <span id="events-timestamp" class="auto-refresh-ts"></span>
+                        </p>
                     </div>
                     <button class="btn-refresh" id="btn-refresh-events" title="Refresh">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -134,6 +136,9 @@
                         </svg>
                     </button>
                 </div>
+
+                <!-- Alert banner for bookings needing date correction -->
+                <div id="events-alert" class="events-alert" style="display:none;"></div>
 
                 <div id="events-loading" class="loading-state">
                     <div class="spinner"></div>

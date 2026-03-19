@@ -950,13 +950,58 @@ body {
     background: var(--cp-success-soft);
 }
 
+/* ═══ EVENTS ALERT BANNER ═══ */
+.events-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    background: var(--cp-warning-soft);
+    border: 1px solid rgba(255, 214, 10, 0.25);
+    border-radius: var(--cp-radius-sm);
+    color: var(--cp-warning);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.events-alert strong {
+    color: var(--cp-white);
+}
+
+.events-alert code {
+    background: rgba(255, 214, 10, 0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+/* Auto-refresh timestamp */
+.auto-refresh-ts {
+    margin-left: 6px;
+    font-size: 0.7rem;
+    color: var(--cp-gray);
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+/* Week summary stats */
+.week-summary {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--cp-gray);
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
 /* ═══ RESPONSIVE ═══ */
 @media (max-width: 768px) {
     .tab-content {
         padding: 16px;
     }
 
-    .events-grid {
+    .week-cards {
         grid-template-columns: 1fr;
     }
 
