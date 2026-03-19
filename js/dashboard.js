@@ -175,50 +175,105 @@
             return;
         }
 
-        grid.style.display = 'grid';
-        grid.innerHTML = state.events.map(ev => {
-            const count = ev.paid_count || 0;
-            const min = 5;
-            const pct = Math.min(100, (count / min) * 100);
+        // Get today in Bangkok time (UTC+7)
+        const now = new Date();
+        const bkkNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        const todayStr = bkkNow.toISOString().split('T')[0];
 
-            let statusClass, badgeClass, badgeText, fillClass;
-            if (count >= min) {
-                statusClass = 'status-go'; badgeClass = 'badge-go'; badgeText = '✓ GO'; fillClass = 'fill-go';
-            } else if (count >= 3) {
-                statusClass = 'status-caution'; badgeClass = 'badge-caution'; badgeText = '⚠ Caution'; fillClass = 'fill-caution';
-            } else {
-                statusClass = 'status-risk'; badgeClass = 'badge-risk'; badgeText = '✕ At Risk'; fillClass = 'fill-risk';
-            }
+        // Group events by week
+        function getWeekLabel(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            const today = new Date(todayStr + 'T00:00:00');
 
-            const d = new Date(ev.date + 'T00:00:00');
-            const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-            const dayStr = d.toLocaleDateString('en-US', { weekday: 'long' });
+            // Find start of current week (Monday)
+            const todayDay = today.getDay();
+            const mondayOffset = todayDay === 0 ? -6 : 1 - todayDay;
+            const thisMonday = new Date(today);
+            thisMonday.setDate(today.getDate() + mondayOffset);
+            const nextMonday = new Date(thisMonday);
+            nextMonday.setDate(thisMonday.getDate() + 7);
+            const weekAfterMonday = new Date(nextMonday);
+            weekAfterMonday.setDate(nextMonday.getDate() + 7);
 
-            const revenue = (ev.total_revenue || 0).toLocaleString();
+            if (d >= thisMonday && d < nextMonday) return 'This Week';
+            if (d >= nextMonday && d < weekAfterMonday) return 'Next Week';
 
-            return `
-                <div class="event-card ${statusClass}">
-                    <div class="event-card-header">
-                        <div>
-                            <div class="event-date">${dateStr}</div>
-                            <div class="event-day">${dayStr}</div>
-                        </div>
-                        <span class="event-status-badge ${badgeClass}">${badgeText}</span>
-                    </div>
-                    <div class="event-headcount">
-                        <span class="headcount-number">${count}</span>
-                        <span class="headcount-label">paid guests<br>/ ${min} minimum</span>
-                    </div>
-                    <div class="headcount-bar">
-                        <div class="headcount-progress ${fillClass}" style="width:${pct}%"></div>
-                    </div>
-                    <div class="event-revenue">
-                        <span class="event-revenue-label">Revenue</span>
-                        <span class="event-revenue-value">฿${revenue}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
+            // Show month range for later weeks
+            const weekStart = new Date(d);
+            const wDay = weekStart.getDay();
+            weekStart.setDate(weekStart.getDate() - (wDay === 0 ? 6 : wDay - 1));
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            const fmtOpts = { day: 'numeric', month: 'short' };
+            return weekStart.toLocaleDateString('en-GB', fmtOpts) + ' — ' + weekEnd.toLocaleDateString('en-GB', fmtOpts);
+        }
+
+        // Build week groups (preserving insertion order)
+        const weekGroups = {};
+        state.events.forEach(function (ev) {
+            const label = getWeekLabel(ev.date);
+            if (!weekGroups[label]) weekGroups[label] = [];
+            weekGroups[label].push(ev);
+        });
+
+        grid.style.display = 'block';
+        var html = '';
+
+        Object.keys(weekGroups).forEach(function (weekLabel) {
+            var events = weekGroups[weekLabel];
+            html += '<div class="week-group">' +
+                '<div class="week-label">' + weekLabel + '</div>' +
+                '<div class="week-cards">';
+
+            events.forEach(function (ev) {
+                var count = ev.paid_count || 0;
+                var min = 5;
+                var pct = Math.min(100, (count / min) * 100);
+
+                var statusClass, badgeClass, badgeText, fillClass;
+                if (count >= min) {
+                    statusClass = 'status-go'; badgeClass = 'badge-go'; badgeText = '✓ GO'; fillClass = 'fill-go';
+                } else if (count >= 3) {
+                    statusClass = 'status-caution'; badgeClass = 'badge-caution'; badgeText = '⚠ Caution'; fillClass = 'fill-caution';
+                } else {
+                    statusClass = 'status-risk'; badgeClass = 'badge-risk'; badgeText = '✕ At Risk'; fillClass = 'fill-risk';
+                }
+
+                var d = new Date(ev.date + 'T00:00:00');
+                var dateDisplay = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                var dayLong = d.toLocaleDateString('en-US', { weekday: 'long' });
+                var dayShort = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                var isToday = ev.date === todayStr;
+                var revenue = (ev.total_revenue || 0).toLocaleString();
+
+                html += '<div class="event-card ' + statusClass + (isToday ? ' event-today' : '') + '">' +
+                    (isToday ? '<div class="today-badge">TODAY</div>' : '') +
+                    '<div class="event-card-header">' +
+                    '<div>' +
+                    '<div class="event-day-badge">' + dayShort + '</div>' +
+                    '<div class="event-date">' + dateDisplay + '</div>' +
+                    '<div class="event-day">' + dayLong + '</div>' +
+                    '</div>' +
+                    '<span class="event-status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+                    '</div>' +
+                    '<div class="event-headcount">' +
+                    '<span class="headcount-number">' + count + '</span>' +
+                    '<span class="headcount-label">paid guests<br>/ ' + min + ' minimum</span>' +
+                    '</div>' +
+                    '<div class="headcount-bar">' +
+                    '<div class="headcount-progress ' + fillClass + '" style="width:' + pct + '%"></div>' +
+                    '</div>' +
+                    '<div class="event-revenue">' +
+                    '<span class="event-revenue-label">Revenue</span>' +
+                    '<span class="event-revenue-value">฿' + revenue + '</span>' +
+                    '</div>' +
+                    '</div>';
+            });
+
+            html += '</div></div>';
+        });
+
+        grid.innerHTML = html;
     }
 
     // ═══ CRM ═══

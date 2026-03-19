@@ -1264,17 +1264,21 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             eventMap[date].total_revenue += (b.total_price || 0);
         });
 
-        // Also add upcoming Fri/Sat dates even if 0 bookings
-        for (let i = 0; i < 14; i++) {
+        // Also add upcoming Thu/Fri/Sat dates for next 4 weeks even if 0 bookings
+        // (Thu = new schedule, Fri/Sat = standard schedule)
+        for (let i = 0; i < 28; i++) {
             const d = new Date(bkkNow.getTime() + i * 24 * 60 * 60 * 1000);
-            const day = d.getDay(); // 5=Fri, 6=Sat
-            if (day === 5 || day === 6) {
+            const day = d.getDay(); // 4=Thu, 5=Fri, 6=Sat
+            if (day === 4 || day === 5 || day === 6) {
                 const ds = d.toISOString().split('T')[0];
                 if (!eventMap[ds]) {
                     eventMap[ds] = { date: ds, paid_count: 0, total_revenue: 0 };
                 }
             }
         }
+
+        // Remove sentinel date (1999-01-01) from display
+        delete eventMap['1999-01-01'];
 
         const events = Object.values(eventMap).sort((a, b) => a.date.localeCompare(b.date));
 
