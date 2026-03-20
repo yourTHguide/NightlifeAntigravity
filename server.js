@@ -1646,24 +1646,41 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 });
             }
 
+            // Task 1: Translate Date Format (YYYY-MM-DD in BKK)
             const rawEventDate = firstEventDate || b.startDate || b.creationDate;
             let finalEventDate = null;
             if (rawEventDate) {
                 try {
                     const d = new Date(rawEventDate);
-                    if (!isNaN(d.getTime())) finalEventDate = d.toISOString().split('T')[0];
+                    if (!isNaN(d.getTime())) {
+                        // Adjust to BKK if it looks like a UTC timestamp
+                        const bkkDate = new Date(d.getTime() + (7 * 60 * 60 * 1000));
+                        finalEventDate = bkkDate.toISOString().split('T')[0];
+                    }
                 } catch (e) { finalEventDate = null; }
+            }
+
+            // Task 2: Translate Payment Status
+            const rawStatus = (b.status || '').toUpperCase();
+            let finalStatus = 'Pending';
+            if (['CONFIRMED', 'ARRIVED', 'PAID_ONLINE', 'SUCCESS', 'PAID'].includes(rawStatus)) {
+                finalStatus = 'Paid';
+            } else if (['CANCELLED', 'REFUNDED'].includes(rawStatus)) {
+                finalStatus = 'Refunded';
             }
 
             return {
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
                 total_price: b.totalPrice || 0,
-                payment_status: b.status || 'Confirmed',
+                payment_status: finalStatus,
                 booking_source: 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
         });
+
+        // Task 3: Expose a Mapped Row
+        console.log('MAPPED DB ROW (First 3):', upsertData.slice(0, 3));
 
         // Perform bulk insert
         const { error: insertErr } = await supabase
