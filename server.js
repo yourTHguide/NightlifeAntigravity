@@ -1460,6 +1460,50 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     }
 });
 
+// ═══ POST /api/admin/clean-statuses ═══
+// Standardizes legacy payment statuses to strict PascalCase standards
+app.post('/api/admin/clean-statuses', adminAuth, async (req, res) => {
+    try {
+        console.log('🧹 Starting Database Status Standardization...');
+
+        // 1. Standardize Direct Bookings (all non-Bokun) to 'Paid'
+        const { error: directErr } = await supabase
+            .from('bookings')
+            .update({ payment_status: 'Paid' })
+            .in('payment_status', ['paid', 'completed', 'Completed', 'success', 'captured'])
+            .neq('booking_source', 'bokun');
+
+        if (directErr) throw directErr;
+
+        // 2. Standardize Bokun Bookings to 'Confirmed'
+        const { error: bokunErr } = await supabase
+            .from('bookings')
+            .update({ payment_status: 'Confirmed' })
+            .in('payment_status', ['confirmed', 'confirmed_at'])
+            .eq('booking_source', 'bokun');
+
+        if (bokunErr) throw bokunErr;
+
+        // 3. Normalize all cases to PascalCase (Pending, Cancelled, etc)
+        const others = [
+            { old: 'pending', new: 'Pending' },
+            { old: 'cancelled', new: 'Cancelled' },
+            { old: 'refunded', new: 'Refunded' },
+            { old: 'failed', new: 'Failed' }
+        ];
+
+        for (const status of others) {
+            await supabase.from('bookings').update({ payment_status: status.new }).eq('payment_status', status.old);
+        }
+
+        console.log('✅ Database Status Standardization COMPLETE.');
+        return res.json({ message: 'Standardization complete. All statuses now follow PascalCase rules.' });
+    } catch (err) {
+        console.error('❌ Status cleanup failed:', err);
+        return res.status(500).json({ error: 'Cleanup failed', detail: err.message });
+    }
+});
+
 
 // ═══════════════════════════════════════════════════
 //  POST /api/omnichannel-chat
