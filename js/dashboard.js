@@ -250,16 +250,11 @@
             const res = await apiFetch('/events');
             const data = await res.json();
 
-            if (res.status >= 400) {
-                console.error(`❌ ${res.status} CRASH REPORT (Events):`, data);
+            if (!res.ok) {
                 if (res.status === 401) return handleLogout();
-                return;
+                throw new Error(data.error || 'Failed to load events');
             }
 
-            console.log('Raw Dashboard Events Data:', data);
-            if (data.debugRawData) {
-                console.error('ULTIMATE DEBUG DATA (Raw Bookings):', data.debugRawData);
-            }
             state.events = data.events || [];
             state.today = data.today || null;
             state.needsDateCount = data.needs_date_count || 0;
@@ -513,16 +508,13 @@
 
         try {
             const res = await apiFetch('/kpis');
-            if (res.status === 401) return handleLogout();
-
             const data = await res.json();
-            if (res.status >= 400) {
-                console.error(`❌ ${res.status} CRASH REPORT (KPIs):`, data);
+
+            if (!res.ok) {
                 if (res.status === 401) return handleLogout();
-                return;
+                throw new Error(data.error || 'Failed to calculate KPIs');
             }
 
-            console.log('Raw Dashboard KPIs Data:', data);
             state.kpis = data;
             renderKPIs();
         } catch (err) {

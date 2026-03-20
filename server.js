@@ -1295,11 +1295,6 @@ app.post('/api/admin/login', async (req, res) => {
 // Returns upcoming events grouped by date with paid headcount
 app.get('/api/admin/events', adminAuth, async (req, res) => {
     try {
-        // Disable Vercel caching for this dynamic route
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-
         // Get today's date in Bangkok time (UTC+7)
         const now = new Date();
         const bkkOffset = 7 * 60 * 60 * 1000;
@@ -1313,12 +1308,10 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             .gte('event_date', todayStr)
             .order('event_date', { ascending: true });
 
-        console.error('SERVER DEBUG - RAW SUPABASE ROWS (Events):', JSON.stringify(rawBookings, null, 2));
-
         if (error) throw error;
 
         // Apply case-insensitive filter on the backend
-        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured'];
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured', 'pending'];
         const bookings = (rawBookings || []).filter(b => {
             const status = (b.payment_status || '').toLowerCase();
             return validStatuses.includes(status);
@@ -1343,7 +1336,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
                 // Task 2: Use total_price for revenue math (database uses legacy column)
                 eventMap[date].total_revenue += (parseFloat(b.total_price) || 0);
             } catch (rowErr) {
-                console.error(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
+                console.warn(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
             }
         });
 
@@ -1375,18 +1368,11 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         return res.json({
             events,
             today: todayStr,
-            needs_date_count: (needsDateBookings || []).length,
-            debugRawData: rawBookings // ULTIMATE DEBUG: Pass raw bookings to frontend
+            needs_date_count: (needsDateBookings || []).length
         });
     } catch (err) {
-        console.error('❌ FATAL ADMIN EVENTS CRASH:', err);
-        // Expose error stack and any raw data for debugging
-        return res.status(500).json({
-            error: 'Failed to load events',
-            message: err.message,
-            stack: err.stack,
-            debugRawData: typeof rawBookings !== 'undefined' ? rawBookings : null
-        });
+        console.error('❌ Admin events error:', err);
+        return res.status(500).json({ error: 'Failed to load events' });
     }
 });
 
@@ -1412,22 +1398,15 @@ app.get('/api/admin/guests', adminAuth, async (req, res) => {
 // Auto-calculates core business metrics
 app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     try {
-        // Disable Vercel caching for this dynamic route
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-
         // Fetch ALL bookings for KPI calculations to avoid case-sensitivity issues
         const { data: rawBookings, error: bErr } = await supabase
             .from('bookings')
             .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at');
 
-        console.error('SERVER DEBUG - RAW SUPABASE ROWS (KPIs):', JSON.stringify(rawBookings, null, 2));
-
         if (bErr) throw bErr;
 
         // Apply case-insensitive filter
-        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured'];
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured', 'pending'];
         const paidBookings = (rawBookings || []).filter(b => {
             const status = (b.payment_status || '').toLowerCase();
             return validStatuses.includes(status);
@@ -1474,7 +1453,7 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
                 const date = dateStr.split('T')[0];
                 if (date && date !== 'null' && date !== 'undefined') guestEventMap[b.guest_id].add(date);
             } catch (rowErr) {
-                console.error(`⚠ Skipping malformed KPI booking row ${b.id || 'unknown'}:`, rowErr.message);
+                console.warn(`⚠ Skipping malformed KPI booking row ${b.id || 'unknown'}:`, rowErr.message);
             }
         });
 
@@ -1507,14 +1486,8 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
             source_breakdown: sourceBreakdown
         });
     } catch (err) {
-        console.error('❌ FATAL ADMIN KPIs CRASH:', err);
-        // Expose error stack and any raw data for debugging
-        return res.status(500).json({
-            error: 'Failed to calculate KPIs',
-            message: err.message,
-            stack: err.stack,
-            debugRawData: typeof rawBookings !== 'undefined' ? rawBookings : null
-        });
+        console.error('❌ Admin KPIs error:', err);
+        return res.status(500).json({ error: 'Failed to calculate KPIs' });
     }
 });
 
