@@ -1323,8 +1323,11 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const eventMap = {};
         bookings.forEach(b => {
             // Fix Date Matching: Extract YYYY-MM-DD from potential ISO timestamp
-            const date = (b.event_date || '').split('T')[0];
-            if (!date) return;
+            // Ensure event_date is a string before splitting to prevent null reference crashes
+            if (!b.event_date) return;
+            const dateStr = String(b.event_date);
+            const date = dateStr.split('T')[0];
+            if (!date || date === 'null' || date === 'undefined') return;
 
             if (!eventMap[date]) {
                 eventMap[date] = { date, paid_count: 0, total_revenue: 0 };
@@ -1422,7 +1425,10 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         const totalRevenue = paidBookings.reduce((sum, b) => sum + (parseFloat(b.total_amount_paid) || 0), 0);
 
         // --- Events with bookings ---
-        const eventDates = [...new Set(paidBookings.map(b => (b.event_date || '').split('T')[0]))].filter(Boolean);
+        const eventDates = [...new Set(paidBookings.map(b => {
+            if (!b.event_date) return null;
+            return String(b.event_date).split('T')[0];
+        }))].filter(d => d && d !== 'null' && d !== 'undefined');
         const totalEventsWithBookings = eventDates.length;
 
         // --- Avg Revenue per Event ---
@@ -1440,10 +1446,11 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         // A repeat guest is someone who has 2+ paid bookings on different event dates
         const guestEventMap = {};
         paidBookings.forEach(b => {
-            if (!b.guest_id) return;
+            if (!b.guest_id || !b.event_date) return;
             if (!guestEventMap[b.guest_id]) guestEventMap[b.guest_id] = new Set();
-            const date = (b.event_date || '').split('T')[0];
-            if (date) guestEventMap[b.guest_id].add(date);
+            const dateStr = String(b.event_date);
+            const date = dateStr.split('T')[0];
+            if (date && date !== 'null' && date !== 'undefined') guestEventMap[b.guest_id].add(date);
         });
 
         const uniqueBookedGuests = Object.keys(guestEventMap).length;
