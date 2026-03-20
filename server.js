@@ -1544,6 +1544,9 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         const accessKey = process.env.BOKUN_ACCESS_KEY;
         const secretKey = process.env.BOKUN_SECRET_KEY;
 
+        let endpointUrl = 'Not built';
+        let requestHeaders = 'Headers not built';
+
         if (!accessKey || !secretKey) {
             console.error('❌ Bokun API credentials missing');
             return res.status(500).json({ error: 'Bokun API not configured' });
@@ -1555,7 +1558,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         const dateFrom = now.toISOString().split('T')[0];
 
         // Helper to sign Bokun API requests
-        const path = '/booking.json/query';
+        const path = '/booking.json/booking-search';
         const method = 'POST';
         const timestamp = now.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:ssZ
 
@@ -1569,15 +1572,18 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         // Strict Bokun Signature: timestamp + accessKey + method + path + body
         const signatureStr = `${timestamp}${accessKey}${method}${path}${body}`;
         const signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('hex');
-        const bokunUrl = `https://api.bokun.io${path}`;
-        const response = await fetch(bokunUrl, {
+
+        endpointUrl = `https://api.bokun.io${path}`;
+        requestHeaders = {
+            'X-Bokun-AccessKey': accessKey,
+            'X-Bokun-Date': timestamp,
+            'X-Bokun-Signature': signature,
+            'Content-Type': 'application/json'
+        };
+
+        const response = await fetch(endpointUrl, {
             method,
-            headers: {
-                'X-Bokun-AccessKey': accessKey,
-                'X-Bokun-Date': timestamp,
-                'X-Bokun-Signature': signature,
-                'Content-Type': 'application/json'
-            },
+            headers: requestHeaders,
             body
         });
 
@@ -1658,14 +1664,9 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             stack: err.stack,
             debugRawData: typeof bokunDataSnapshot !== 'undefined' ? bokunDataSnapshot : 'Data fetch failed/not reached',
             debugRequest: {
-                url: typeof bokunUrl !== 'undefined' ? bokunUrl : 'Not built',
+                url: endpointUrl,
                 method: typeof method !== 'undefined' ? method : 'POST',
-                headers: typeof signature !== 'undefined' ? {
-                    'X-Bokun-AccessKey': accessKey,
-                    'X-Bokun-Date': timestamp,
-                    'X-Bokun-Signature': signature,
-                    'Content-Type': 'application/json'
-                } : 'Headers not built'
+                headers: requestHeaders
             }
         });
     }
