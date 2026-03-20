@@ -1677,17 +1677,21 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
             // Task 2: Translate Payment Status
             const rawStatus = (b.status || '').toUpperCase();
+            const rawPaymentStatus = (b.paymentStatus || '').toUpperCase();
             let finalStatus = 'Pending';
-            if (['CONFIRMED', 'ARRIVED', 'PAID_ONLINE', 'SUCCESS', 'PAID'].includes(rawStatus)) {
+
+            // Map successful statuses to 'Paid'
+            const paidStatuses = ['CONFIRMED', 'ARRIVED', 'PAID_ONLINE', 'SUCCESS', 'PAID', 'INVOICED', 'PARTIALLY_PAID'];
+            if (paidStatuses.includes(rawStatus) || paidStatuses.includes(rawPaymentStatus)) {
                 finalStatus = 'Paid';
-            } else if (['CANCELLED', 'REFUNDED'].includes(rawStatus)) {
+            } else if (['CANCELLED', 'REFUNDED', 'VOIDED'].includes(rawStatus) || ['REFUNDED', 'VOIDED'].includes(rawPaymentStatus)) {
                 finalStatus = 'Refunded';
             }
 
             const mapped = {
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
-                total_price: b.totalPrice || 0,
+                total_price: b.totalPrice || b.totalAmount || 0,
                 payment_status: finalStatus,
                 booking_source: 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
