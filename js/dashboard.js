@@ -258,7 +258,6 @@
 
             // Task 3: Expose the Frontend Fetch
             console.log('EVENT PAGE FETCH:', data);
-            if (data.debug_all_today_rows) console.log('DB DEBUG ROWS:', data.debug_all_today_rows);
 
             if (!res.ok) {
                 if (res.status === 401) return handleLogout();

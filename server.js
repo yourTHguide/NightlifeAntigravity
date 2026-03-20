@@ -1300,14 +1300,6 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const bkkNow = new Date(now.getTime() + bkkOffset);
         const todayStr = bkkNow.toISOString().split('T')[0];
 
-        // --- DATABASE DEBUG LOG: Fetch all unfiltered bookings for today/yesterday/tomorrow ---
-        const { data: debugData } = await supabase
-            .from('bookings')
-            .select('*')
-            .gte('event_date', '2026-03-20')
-            .lte('event_date', '2026-03-22');
-        console.log('DB DEBUG ROWS (Server-side):', (debugData || []).length, 'found');
-
         // Fetch ALL bookings from today onwards to avoid case-sensitivity issues
         const { data: rawBookings, error } = await supabase
             .from('bookings')
@@ -1372,8 +1364,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         return res.json({
             events,
             today: todayStr,
-            needs_date_count: (needsDateBookings || []).length,
-            debug_all_today_rows: debugData || []
+            needs_date_count: (needsDateBookings || []).length
         });
     } catch (err) {
         console.error('❌ Admin events error:', err);
@@ -1600,9 +1591,8 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
             const body = JSON.stringify({
                 bookingDateFrom: "2024-01-01",
-                status: ["CONFIRMED"],
                 pageSize: pageSize,
-                page: page,
+                pageNum: page, // Bokun search uses pageNum (1-indexed)
                 sortField: "TRAVEL_DATE",
                 sortOrder: "DESCENDING"
             });
@@ -1668,9 +1658,11 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             return {
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
+                total_amount_paid: b.totalPrice || 0,
                 total_price: b.totalPrice || 0,
-                payment_status: 'Confirmed',
+                payment_status: b.status || 'Confirmed',
                 booking_source: 'bokun',
+                platform: b.source || 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
         });
