@@ -248,8 +248,14 @@
 
         try {
             const res = await apiFetch('/events');
-            if (res.status === 401) return handleLogout();
             const data = await res.json();
+
+            if (res.status >= 400) {
+                console.error(`❌ ${res.status} CRASH REPORT (Events):`, data);
+                if (res.status === 401) return handleLogout();
+                return;
+            }
+
             console.log('Raw Dashboard Events Data:', data);
             if (data.debugRawData) {
                 console.error('ULTIMATE DEBUG DATA (Raw Bookings):', data.debugRawData);
@@ -508,7 +514,14 @@
         try {
             const res = await apiFetch('/kpis');
             if (res.status === 401) return handleLogout();
+
             const data = await res.json();
+            if (res.status >= 400) {
+                console.error(`❌ ${res.status} CRASH REPORT (KPIs):`, data);
+                if (res.status === 401) return handleLogout();
+                return;
+            }
+
             console.log('Raw Dashboard KPIs Data:', data);
             state.kpis = data;
             renderKPIs();

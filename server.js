@@ -1379,8 +1379,14 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             debugRawData: rawBookings // ULTIMATE DEBUG: Pass raw bookings to frontend
         });
     } catch (err) {
-        console.error('❌ Admin events error:', err);
-        return res.status(500).json({ error: 'Failed to load events' });
+        console.error('❌ FATAL ADMIN EVENTS CRASH:', err);
+        // Expose error stack and any raw data for debugging
+        return res.status(500).json({
+            error: 'Failed to load events',
+            message: err.message,
+            stack: err.stack,
+            debugRawData: typeof rawBookings !== 'undefined' ? rawBookings : null
+        });
     }
 });
 
@@ -1501,8 +1507,14 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
             source_breakdown: sourceBreakdown
         });
     } catch (err) {
-        console.error('❌ Admin KPIs error:', err);
-        return res.status(500).json({ error: 'Failed to calculate KPIs' });
+        console.error('❌ FATAL ADMIN KPIs CRASH:', err);
+        // Expose error stack and any raw data for debugging
+        return res.status(500).json({
+            error: 'Failed to calculate KPIs',
+            message: err.message,
+            stack: err.stack,
+            debugRawData: typeof rawBookings !== 'undefined' ? rawBookings : null
+        });
     }
 });
 
