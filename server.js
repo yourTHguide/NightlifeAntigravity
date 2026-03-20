@@ -1646,8 +1646,21 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 });
             }
 
-            // Task 1: Fix Event Date Mapping (Priority: Tour Date > Creation Date)
-            const rawEventDate = b.startDate || firstEventDate || b.creationDate;
+            // Task 1: Fix Nested Date Mapping (productBookings[0] > startDate > creationDate)
+            let rawEventDate = b.startDate || b.creationDate;
+
+            // Bokun often nests product details in productBookings or items array
+            const products = b.productBookings || b.items || [];
+            if (products.length > 0) {
+                const firstProduct = products[0];
+                rawEventDate = firstProduct.date || firstProduct.activityDate || firstProduct.startTime || firstProduct.startDate || rawEventDate;
+
+                // Also update quantity while we are here if nested data has it
+                if (firstProduct.totalPassengerCount) {
+                    totalQuantity = firstProduct.totalPassengerCount;
+                }
+            }
+
             let finalEventDate = null;
             if (rawEventDate) {
                 try {
