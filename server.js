@@ -1196,6 +1196,64 @@ function adminAuth(req, res, next) {
     next();
 }
 
+// ═══ REALTIME SSE — Push changes to dashboard clients ═══
+const sseClients = new Set();
+
+// Supabase Realtime channel for bookings + guests
+const realtimeChannel = supabase
+    .channel('admin-dashboard')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
+        console.log('📡 Realtime: bookings change', payload.eventType);
+        broadcastSSE({ type: 'bookings_change', event: payload.eventType, record: payload.new || {} });
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'guests' }, (payload) => {
+        console.log('📡 Realtime: guests change', payload.eventType);
+        broadcastSSE({ type: 'guests_change', event: payload.eventType, record: payload.new || {} });
+    })
+    .subscribe((status) => {
+        console.log('📡 Realtime subscription status:', status);
+    });
+
+function broadcastSSE(data) {
+    const msg = `data: ${JSON.stringify(data)}\n\n`;
+    for (const client of sseClients) {
+        try { client.write(msg); } catch (e) { sseClients.delete(client); }
+    }
+}
+
+// SSE endpoint — admin-authenticated streaming connection
+app.get('/api/admin/stream', (req, res) => {
+    // Verify admin token from query param (SSE can't send headers)
+    const token = req.query.token;
+    if (!token || !verifyAdminToken(token)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'        // Disable Nginx/Vercel buffering
+    });
+
+    // Send initial heartbeat
+    res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+
+    sseClients.add(res);
+    console.log(`📡 SSE client connected (${sseClients.size} total)`);
+
+    // Heartbeat every 30s to keep connection alive
+    const heartbeat = setInterval(() => {
+        try { res.write(`: heartbeat\n\n`); } catch (e) { clearInterval(heartbeat); }
+    }, 30000);
+
+    req.on('close', () => {
+        sseClients.delete(res);
+        clearInterval(heartbeat);
+        console.log(`📡 SSE client disconnected (${sseClients.size} remaining)`);
+    });
+});
+
 // ═══ POST /api/admin/login ═══
 app.post('/api/admin/login', async (req, res) => {
     try {

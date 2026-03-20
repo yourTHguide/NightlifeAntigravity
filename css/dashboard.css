@@ -995,6 +995,79 @@ body {
     letter-spacing: 0.02em;
 }
 
+/* ═══ REALTIME INDICATOR ═══ */
+.realtime-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rt-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.rt-connected {
+    background: rgba(48, 209, 88, 0.1);
+    color: var(--cp-success);
+}
+
+.rt-connected .rt-dot {
+    background: var(--cp-success);
+    box-shadow: 0 0 6px var(--cp-success);
+    animation: rtPulse 2s ease-in-out infinite;
+}
+
+.rt-disconnected {
+    background: rgba(255, 214, 10, 0.1);
+    color: var(--cp-warning);
+}
+
+.rt-disconnected .rt-dot {
+    background: var(--cp-warning);
+}
+
+@keyframes rtPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* Realtime flash when data updates */
+.rt-flash {
+    animation: rtFlash 0.4s ease;
+    color: var(--cp-success) !important;
+    opacity: 1 !important;
+}
+
+@keyframes rtFlash {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* ═══ RESPONSIVE ═══ */
 @media (max-width: 768px) {
     .tab-content {

@@ -16,7 +16,9 @@
         sortDir: 'desc',
         today: null,
         needsDateCount: 0,
-        autoRefreshTimer: null
+        autoRefreshTimer: null,
+        sseSource: null,
+        sseRetryCount: 0
     };
 
     const API_BASE = '/api/admin';
@@ -115,6 +117,7 @@
     function handleLogout() {
         state.token = null;
         localStorage.removeItem('admin_token');
+        disconnectRealtime();
         showLogin();
     }
 
@@ -128,6 +131,82 @@
         dashboard.style.display = 'block';
         loadEvents();
         startAutoRefresh();
+        connectRealtime();
+    }
+
+    // ═══ REALTIME (SSE) ═══
+    function connectRealtime() {
+        disconnectRealtime();
+        if (!state.token) return;
+
+        var url = API_BASE + '/stream?token=' + encodeURIComponent(state.token);
+        var source = new EventSource(url);
+        state.sseSource = source;
+        state.sseRetryCount = 0;
+
+        source.onmessage = function (e) {
+            try {
+                var data = JSON.parse(e.data);
+
+                if (data.type === 'connected') {
+                    console.log('📡 Realtime connected');
+                    updateRealtimeIndicator(true);
+                    return;
+                }
+
+                if (data.type === 'bookings_change') {
+                    console.log('📡 Booking', data.event, '— refreshing events + KPIs');
+                    loadEvents();
+                    if (state.kpis) loadKPIs();  // refresh if already loaded
+                    showRealtimeFlash('Booking ' + data.event + 'd');
+                }
+
+                if (data.type === 'guests_change') {
+                    console.log('📡 Guest', data.event, '— refreshing CRM');
+                    if (state.guests.length > 0) loadGuests();  // refresh if already loaded
+                    showRealtimeFlash('Guest updated');
+                }
+            } catch (err) {
+                console.warn('SSE parse error:', err);
+            }
+        };
+
+        source.onerror = function () {
+            updateRealtimeIndicator(false);
+            source.close();
+            state.sseSource = null;
+            // Reconnect with exponential backoff (max 60s)
+            state.sseRetryCount++;
+            var delay = Math.min(60000, 2000 * Math.pow(1.5, state.sseRetryCount));
+            console.log('📡 SSE disconnected, retrying in', Math.round(delay / 1000), 's');
+            setTimeout(function () {
+                if (state.token) connectRealtime();
+            }, delay);
+        };
+    }
+
+    function disconnectRealtime() {
+        if (state.sseSource) {
+            state.sseSource.close();
+            state.sseSource = null;
+        }
+        updateRealtimeIndicator(false);
+    }
+
+    function updateRealtimeIndicator(connected) {
+        var el = $('realtime-status');
+        if (!el) return;
+        el.className = 'realtime-indicator ' + (connected ? 'rt-connected' : 'rt-disconnected');
+        el.querySelector('.rt-label').textContent = connected ? 'Live' : 'Reconnecting...';
+    }
+
+    function showRealtimeFlash(msg) {
+        var ts = $('events-timestamp');
+        if (ts) {
+            ts.textContent = '⚡ ' + msg + ' — ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            ts.classList.add('rt-flash');
+            setTimeout(function () { ts.classList.remove('rt-flash'); }, 2000);
+        }
     }
 
     // ═══ API ═══
