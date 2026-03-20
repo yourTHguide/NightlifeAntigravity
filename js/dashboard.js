@@ -220,9 +220,13 @@
     }
 
     // ═══ API ═══
-    function apiFetch(path) {
+    function apiFetch(path, options = {}) {
         return fetch(`${API_BASE}${path}`, {
-            headers: { 'Authorization': `Bearer ${state.token}` }
+            ...options,
+            headers: {
+                ...options.headers,
+                'Authorization': `Bearer ${state.token}`
+            }
         });
     }
 
