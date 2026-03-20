@@ -1650,13 +1650,6 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 total_price: totalPrice,
                 payment_status: 'Confirmed',
                 booking_source: 'bokun',
-                metadata: {
-                    bokun_raw: {
-                        id: b.id,
-                        confirmationCode: b.confirmationCode,
-                        guest: { firstName, lastName, email, phone }
-                    }
-                },
                 updated_at: new Date().toISOString()
             };
         }); // REMOVED .filter(b => b.event_date) to allow historical sync even if date is malformed
