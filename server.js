@@ -1557,12 +1557,20 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         // --- Fetch Upcoming Bookings from Bokun ---
         // We use the search endpoint to find active bookings
-        const now = new Date();
-        const dateFrom = now.toISOString().split('T')[0];
-
         // Helper to sign Bokun API requests
         const path = '/booking.json/booking-search';
-        timestamp = now.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:ssZ
+
+        // Bokun strictly requires: YYYY-MM-DD HH:mm:ss (UTC)
+        const now = new Date();
+        const yyyy = now.getUTCFullYear();
+        const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(now.getUTCDate()).padStart(2, '0');
+        const hh = String(now.getUTCHours()).padStart(2, '0');
+        const min = String(now.getUTCMinutes()).padStart(2, '0');
+        const ss = String(now.getUTCSeconds()).padStart(2, '0');
+        timestamp = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+
+        const dateFrom = `${yyyy}-${mm}-${dd}`;
 
         const body = JSON.stringify({
             bookingDateFrom: "2024-01-01",
