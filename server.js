@@ -1645,16 +1645,18 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
             return {
                 id: `bokun_${b.id}`, // Unique ID for upsert
-                first_name: firstName,
-                last_name: lastName,
-                email: email,
-                phone: phone,
                 event_date: eventDate,
                 quantity: quantity || 1,
                 total_price: totalPrice,
                 payment_status: 'Confirmed',
                 booking_source: 'bokun',
-                metadata: { bokun_raw: { id: b.id, confirmationCode: b.confirmationCode } },
+                metadata: {
+                    bokun_raw: {
+                        id: b.id,
+                        confirmationCode: b.confirmationCode,
+                        guest: { firstName, lastName, email, phone }
+                    }
+                },
                 updated_at: new Date().toISOString()
             };
         }); // REMOVED .filter(b => b.event_date) to allow historical sync even if date is malformed
