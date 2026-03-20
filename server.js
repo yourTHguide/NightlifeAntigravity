@@ -1642,7 +1642,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             }
 
             return {
-                booking_id: `bokun_${b.id}`, // Unique constraint column
+                id: `bokun_${b.id}`, // Unique ID for upsert
                 first_name: firstName,
                 last_name: lastName,
                 email: email,
@@ -1661,7 +1661,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         const { error: upsertErr } = await supabase
             .from('bookings')
             .upsert(upsertData, {
-                onConflict: 'booking_id',
+                onConflict: 'id',
                 ignoreDuplicates: false
             });
 
