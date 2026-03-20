@@ -1320,20 +1320,17 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const eventMap = {};
         bookings.forEach(b => {
             try {
-                // Fix Date Matching: Extract YYYY-MM-DD from potential ISO timestamp
-                // Ensure event_date is a string before splitting to prevent null reference crashes
+                // Task 2: Standardize Date Matching (YYYY-MM-DD)
                 if (!b.event_date) return;
-                const dateStr = String(b.event_date);
-                const date = dateStr.split('T')[0];
-                if (!date || date === 'null' || date === 'undefined') return;
+                const ds = String(b.event_date).split('T')[0];
+                if (!ds || ds === 'null' || ds === 'undefined') return;
 
-                if (!eventMap[date]) {
-                    eventMap[date] = { date, paid_count: 0, total_revenue: 0 };
+                if (!eventMap[ds]) {
+                    eventMap[ds] = { date: ds, paid_count: 0, total_revenue: 0 };
                 }
-                // Parse quantity as integer
-                eventMap[date].paid_count += (parseInt(b.quantity, 10) || 1);
-                // Task 2: Use total_price for revenue math (database uses legacy column)
-                eventMap[date].total_revenue += (parseFloat(b.total_price) || 0);
+
+                eventMap[ds].paid_count += (parseInt(b.quantity, 10) || 1);
+                eventMap[ds].total_revenue += (parseFloat(b.total_price) || 0);
             } catch (rowErr) {
                 console.warn(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
             }

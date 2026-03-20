@@ -258,6 +258,9 @@
             const res = await apiFetch('/events');
             const data = await res.json();
 
+            // Task 3: Expose the Frontend Fetch
+            console.log('EVENT PAGE FETCH:', data);
+
             if (!res.ok) {
                 if (res.status === 401) return handleLogout();
                 throw new Error(data.error || 'Failed to load events');
