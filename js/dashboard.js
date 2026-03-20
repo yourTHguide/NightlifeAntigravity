@@ -515,7 +515,15 @@
 
         try {
             const res = await apiFetch('/sync-bokun', { method: 'POST' });
-            const data = await res.json();
+            const rawText = await res.text();
+            let data;
+
+            try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                console.error('SERVER RETURNED NON-JSON:', rawText);
+                throw new Error('Server returned an invalid response (not JSON). Check the console for RAW SERVER RESPONSE.');
+            }
 
             if (!res.ok) {
                 if (res.status === 401) return handleLogout();
