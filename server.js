@@ -1713,6 +1713,8 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         return res.json({
             message: `Sync successful. Processed ${upsertData.length} historical Bokun bookings (all ${page} pages).`,
             count: upsertData.length,
+            sampleRawItem: allBokunBookings[0] || null,
+            sampleMappedItem: upsertData[0] || null,
             rawBokunData: lastFullResponse
         });
 
