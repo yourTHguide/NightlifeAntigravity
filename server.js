@@ -1618,41 +1618,38 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             });
         }
 
-        // --- Map and Upsert to Supabase ---
+        // --- Map and Upsert to Supabase (Strictly Transactional) ---
         const upsertData = bokunBookings.map(b => {
-            // Find the main guest (customer)
-            const customer = b.customer || {};
-            const firstName = customer.firstName || 'Unknown';
-            const lastName = customer.lastName || '';
-            const email = customer.email || '';
-            const phone = customer.phoneNumber || '';
-
-            // Sum up total quantity from items
-            let quantity = 0;
-            let eventDate = null;
-            let totalPrice = b.totalPrice || 0;
-
+            // Sum up total quantity and extract first event date from line items
+            let totalQuantity = 0;
+            let firstEventDate = null;
             if (b.items && b.items.length > 0) {
                 b.items.forEach(item => {
-                    quantity += (item.totalPassengerCount || 0);
-                    // Standard Bokun booking date is often at item.date (as timestamp or ISO)
-                    if (!eventDate && item.date) eventDate = item.date;
+                    totalQuantity += (item.totalPassengerCount || 0);
+                    if (!firstEventDate && item.date) firstEventDate = item.date;
                 });
             }
 
-            // Fallback for event_date if items array didn't have it
-            if (!eventDate) eventDate = b.startDate || b.creationDate || null;
+            // Standardize Date and Timestamp for strict schema compliance
+            const rawEventDate = firstEventDate || b.startDate || b.creationDate;
+            let finalEventDate = null;
+            if (rawEventDate) {
+                try {
+                    const d = new Date(rawEventDate);
+                    if (!isNaN(d.getTime())) finalEventDate = d.toISOString().split('T')[0];
+                } catch (e) { finalEventDate = null; }
+            }
 
             return {
-                id: `bokun_${b.id}`, // Unique ID for upsert
-                event_date: eventDate,
-                quantity: quantity || 1,
-                total_price: totalPrice,
+                id: `bokun_${b.id}`, // Strictly map to official schema columns only
+                event_date: finalEventDate,
+                quantity: totalQuantity || 1,
+                total_price: b.totalPrice || 0,
                 payment_status: 'Confirmed',
                 booking_source: 'bokun',
-                updated_at: new Date().toISOString()
+                booking_timestamp: new Date(b.creationDate || Date.now()).toISOString()
             };
-        }); // REMOVED .filter(b => b.event_date) to allow historical sync even if date is malformed
+        }); // No filters. Strictly mapping to valid database columns only.
 
         // Perform bulk upsert
         const { error: upsertErr } = await supabase
