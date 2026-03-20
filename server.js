@@ -1658,7 +1658,6 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             return {
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
-                total_amount_paid: b.totalPrice || 0,
                 total_price: b.totalPrice || 0,
                 payment_status: b.status || 'Confirmed',
                 booking_source: 'bokun',
