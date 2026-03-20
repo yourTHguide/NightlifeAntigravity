@@ -278,9 +278,9 @@
     },
     "paymentStatus": {
       "type": "string",
-      "enum": ["pending", "completed", "failed", "refunded", "cancelled"],
-      "default": "pending",
-      "description": "Only 'completed' after Stripe webhook success"
+      "enum": ["Pending", "Paid", "Confirmed", "Failed", "Refunded", "Cancelled"],
+      "default": "Pending",
+      "description": "Only 'Paid' or 'Confirmed' count towards headcount"
     },
     "stripePaymentIntentId": {
       "type": "string",
