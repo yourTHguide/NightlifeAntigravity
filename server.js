@@ -1295,6 +1295,11 @@ app.post('/api/admin/login', async (req, res) => {
 // Returns upcoming events grouped by date with paid headcount
 app.get('/api/admin/events', adminAuth, async (req, res) => {
     try {
+        // Disable Vercel caching for this dynamic route
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         // Get today's date in Bangkok time (UTC+7)
         const now = new Date();
         const bkkOffset = 7 * 60 * 60 * 1000;
@@ -1308,7 +1313,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             .gte('event_date', todayStr)
             .order('event_date', { ascending: true });
 
-        console.log('RAW SUPABASE ROWS (Events):', rawBookings);
+        console.error('SERVER DEBUG - RAW SUPABASE ROWS (Events):', JSON.stringify(rawBookings, null, 2));
 
         if (error) throw error;
 
@@ -1338,7 +1343,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
                 // Task 2: Use total_amount_paid for revenue math
                 eventMap[date].total_revenue += (parseFloat(b.total_amount_paid) || 0);
             } catch (rowErr) {
-                console.warn(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
+                console.error(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
             }
         });
 
@@ -1400,12 +1405,17 @@ app.get('/api/admin/guests', adminAuth, async (req, res) => {
 // Auto-calculates core business metrics
 app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     try {
+        // Disable Vercel caching for this dynamic route
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         // Fetch ALL bookings for KPI calculations to avoid case-sensitivity issues
         const { data: rawBookings, error: bErr } = await supabase
             .from('bookings')
             .select('id, guest_id, event_date, quantity, total_amount_paid, payment_status, booking_source, created_at');
 
-        console.log('RAW SUPABASE ROWS (KPIs):', rawBookings);
+        console.error('SERVER DEBUG - RAW SUPABASE ROWS (KPIs):', JSON.stringify(rawBookings, null, 2));
 
         if (bErr) throw bErr;
 
@@ -1457,7 +1467,7 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
                 const date = dateStr.split('T')[0];
                 if (date && date !== 'null' && date !== 'undefined') guestEventMap[b.guest_id].add(date);
             } catch (rowErr) {
-                console.warn(`⚠ Skipping malformed KPI booking row ${b.id || 'unknown'}:`, rowErr.message);
+                console.error(`⚠ Skipping malformed KPI booking row ${b.id || 'unknown'}:`, rowErr.message);
             }
         });
 
