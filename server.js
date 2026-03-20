@@ -1300,6 +1300,14 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const bkkNow = new Date(now.getTime() + bkkOffset);
         const todayStr = bkkNow.toISOString().split('T')[0];
 
+        // --- DATABASE DEBUG LOG: Fetch all unfiltered bookings for today/yesterday/tomorrow ---
+        const { data: debugData } = await supabase
+            .from('bookings')
+            .select('*')
+            .gte('event_date', '2026-03-20')
+            .lte('event_date', '2026-03-22');
+        console.log('DB DEBUG ROWS (Server-side):', (debugData || []).length, 'found');
+
         // Fetch ALL bookings from today onwards to avoid case-sensitivity issues
         const { data: rawBookings, error } = await supabase
             .from('bookings')
@@ -1364,7 +1372,8 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         return res.json({
             events,
             today: todayStr,
-            needs_date_count: (needsDateBookings || []).length
+            needs_date_count: (needsDateBookings || []).length,
+            debug_all_today_rows: debugData || []
         });
     } catch (err) {
         console.error('❌ Admin events error:', err);
