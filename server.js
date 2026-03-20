@@ -1646,8 +1646,8 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 });
             }
 
-            // Task 1: Translate Date Format (YYYY-MM-DD in BKK)
-            const rawEventDate = firstEventDate || b.startDate || b.creationDate;
+            // Task 1: Fix Event Date Mapping (Priority: Tour Date > Creation Date)
+            const rawEventDate = b.startDate || firstEventDate || b.creationDate;
             let finalEventDate = null;
             if (rawEventDate) {
                 try {
@@ -1678,6 +1678,18 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
         });
+
+        // Task 2: Prevent Duplicates (Clean Slate - Delete existing bookings)
+        console.log('🧹 Clearing existing bookings table for fresh sync...');
+        const { error: delErr } = await supabase
+            .from('bookings')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete everything
+
+        if (delErr) {
+            console.error('❌ Failed to clear bookings table:', delErr.message);
+            // Non-critical, but logging it
+        }
 
         // Task 3: Expose a Mapped Row
         console.log('MAPPED DB ROW (First 3):', upsertData.slice(0, 3));
