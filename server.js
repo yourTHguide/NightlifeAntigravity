@@ -1249,7 +1249,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             .from('bookings')
             .select('event_date, quantity, total_price, payment_status')
             .gte('event_date', todayStr)
-            .in('payment_status', ['Paid', 'Confirmed'])
+            .in('payment_status', ['Paid', 'paid', 'Confirmed', 'confirmed', 'completed', 'Completed'])
             .order('event_date', { ascending: true });
 
         if (error) throw error;
@@ -1286,7 +1286,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             .from('bookings')
             .select('id')
             .eq('event_date', '1999-01-01')
-            .in('payment_status', ['Paid', 'Confirmed']);
+            .in('payment_status', ['Paid', 'paid', 'Confirmed', 'confirmed', 'completed', 'Completed']);
 
         const events = Object.values(eventMap).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1327,7 +1327,7 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         const { data: bookings, error: bErr } = await supabase
             .from('bookings')
             .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at')
-            .in('payment_status', ['Paid', 'Confirmed']);
+            .in('payment_status', ['Paid', 'paid', 'Confirmed', 'confirmed', 'completed', 'Completed']);
 
         if (bErr) throw bErr;
 
