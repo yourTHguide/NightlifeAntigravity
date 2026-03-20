@@ -1647,7 +1647,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 total_price: b.totalPrice || 0,
                 payment_status: 'Confirmed',
                 booking_source: 'bokun',
-                booking_timestamp: new Date(b.creationDate || Date.now()).toISOString()
+                created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
         }); // No filters. Strictly mapping to valid database columns only.
 
