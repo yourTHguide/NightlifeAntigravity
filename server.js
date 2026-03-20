@@ -1635,11 +1635,13 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             if (b.items && b.items.length > 0) {
                 b.items.forEach(item => {
                     quantity += (item.totalPassengerCount || 0);
-                    if (!eventDate && item.date) {
-                        eventDate = item.date; // Use first item date as event date
-                    }
+                    // Standard Bokun booking date is often at item.date (as timestamp or ISO)
+                    if (!eventDate && item.date) eventDate = item.date;
                 });
             }
+
+            // Fallback for event_date if items array didn't have it
+            if (!eventDate) eventDate = b.startDate || b.creationDate || null;
 
             return {
                 id: `bokun_${b.id}`, // Unique ID for upsert
@@ -1655,7 +1657,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 metadata: { bokun_raw: { id: b.id, confirmationCode: b.confirmationCode } },
                 updated_at: new Date().toISOString()
             };
-        }).filter(b => b.event_date); // Safety check
+        }); // REMOVED .filter(b => b.event_date) to allow historical sync even if date is malformed
 
         // Perform bulk upsert
         const { error: upsertErr } = await supabase
@@ -1669,7 +1671,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         console.log(`✅ Successfully synced ${upsertData.length} bookings to Supabase.`);
         return res.json({
-            message: `Sync successful. Processed ${upsertData.length} upcoming Bokun bookings.`,
+            message: `Sync successful. Processed ${upsertData.length} historical Bokun bookings.`,
             count: upsertData.length,
             rawBokunData: data
         });
