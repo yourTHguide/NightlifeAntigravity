@@ -1574,7 +1574,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         const body = JSON.stringify({
             bookingDateFrom: "2024-01-01",
-            travelDateFrom: dateFrom,
+            travelDateFrom: dateFrom, // Exact YYYY-MM-DD
             status: ["CONFIRMED"],
             pageSize: 200
         });

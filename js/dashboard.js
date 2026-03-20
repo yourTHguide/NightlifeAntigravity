@@ -542,6 +542,7 @@
                 throw new Error(data.error || 'Sync failed');
             }
 
+            console.log('BOKUN SUCCESS PAYLOAD:', data);
             alert(data.message || 'Sync complete');
 
             // Refresh dashboard data
