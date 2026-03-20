@@ -1621,10 +1621,12 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
             console.log(`📑 Fetched page ${page} (${items.length} items). Total so far: ${allBokunBookings.length}/${totalHits}`);
 
-            if (items.length < pageSize || allBokunBookings.length >= totalHits) {
-                break; // End of data
+            // If we've fetched all hits or the current page is empty, we're done
+            if (items.length === 0 || allBokunBookings.length >= totalHits) {
+                break;
             }
-            page++;
+            // IMPORTANT: Increment page number for next loop
+            page = page + 1;
         }
 
         if (allBokunBookings.length === 0) {
