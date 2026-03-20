@@ -1592,7 +1592,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             const body = JSON.stringify({
                 bookingDateFrom: "2024-01-01",
                 pageSize: pageSize,
-                pageNum: page, // Bokun search uses pageNum (1-indexed)
+                page: page, // Fix: Changed from pageNum to page
                 sortField: "TRAVEL_DATE",
                 sortOrder: "DESCENDING"
             });
@@ -1650,12 +1650,16 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
             // Task 1: Fix Nested Date Mapping (productBookings[0] > startDate > creationDate)
             let rawEventDate = b.startDate || b.creationDate;
+            let nestedPrice = 0;
 
             // Bokun often nests product details in productBookings or items array
             const products = b.productBookings || b.items || [];
             if (products.length > 0) {
                 const firstProduct = products[0];
                 rawEventDate = firstProduct.date || firstProduct.activityDate || firstProduct.startTime || firstProduct.startDate || rawEventDate;
+
+                // Task 2: Fix Nested Price Mapping
+                nestedPrice = firstProduct.price || firstProduct.totalPrice || firstProduct.totalAmount || 0;
 
                 // Also update quantity while we are here if nested data has it
                 if (firstProduct.totalPassengerCount) {
@@ -1691,7 +1695,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             const mapped = {
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
-                total_price: b.totalPrice || b.totalAmount || 0,
+                total_price: b.totalPrice || b.totalAmount || nestedPrice || 0,
                 payment_status: finalStatus,
                 booking_source: 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
