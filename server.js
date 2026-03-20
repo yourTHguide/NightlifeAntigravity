@@ -18,6 +18,7 @@ const path = require('path');
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // ——— Config ———
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -1149,8 +1150,6 @@ if (require.main === module) {
 //  Secured by Supabase Auth + HMAC session tokens
 // ═══════════════════════════════════════════════════
 
-const crypto = require('crypto');
-
 const FOUNDER_EMAIL = 'bestnightlifethailand@gmail.com';
 const TOKEN_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use as HMAC secret
 const TOKEN_EXPIRY_HOURS = 24;
@@ -1538,14 +1537,18 @@ app.post('/api/admin/clean-statuses', adminAuth, async (req, res) => {
 // ═══ POST /api/admin/sync-bokun ═══
 // Fetches upcoming bookings directly from Bokun API and upserts them to Supabase
 app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
+    let endpointUrl = 'Not built';
+    let requestHeaders = 'Headers not built';
+    let method = 'POST';
+    let timestamp = 'Not set';
+    let accessKey = 'Not set';
+    let signature = 'Not set';
+
     try {
         console.log('🔄 Initiating Bokun historical sync...');
 
-        const accessKey = process.env.BOKUN_ACCESS_KEY;
+        accessKey = process.env.BOKUN_ACCESS_KEY;
         const secretKey = process.env.BOKUN_SECRET_KEY;
-
-        let endpointUrl = 'Not built';
-        let requestHeaders = 'Headers not built';
 
         if (!accessKey || !secretKey) {
             console.error('❌ Bokun API credentials missing');
@@ -1559,8 +1562,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         // Helper to sign Bokun API requests
         const path = '/booking.json/booking-search';
-        const method = 'POST';
-        const timestamp = now.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:ssZ
+        timestamp = now.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:ssZ
 
         const body = JSON.stringify({
             bookingDateFrom: "2024-01-01",
@@ -1571,7 +1573,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         // Strict Bokun Signature: timestamp + accessKey + method + path + body
         const signatureStr = `${timestamp}${accessKey}${method}${path}${body}`;
-        const signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('hex');
+        signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('hex');
 
         endpointUrl = `https://api.bokun.io${path}`;
         requestHeaders = {
@@ -1590,7 +1592,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Bokun API error:', errorText);
-            throw new Error(`Bokun API responded with ${response.status}`);
+            throw new Error(`Bokun API responded with ${response.status}: ${errorText}`);
         }
 
         const data = await response.json();
@@ -1665,8 +1667,13 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             debugRawData: typeof bokunDataSnapshot !== 'undefined' ? bokunDataSnapshot : 'Data fetch failed/not reached',
             debugRequest: {
                 url: endpointUrl,
-                method: typeof method !== 'undefined' ? method : 'POST',
-                headers: requestHeaders
+                method: method,
+                headers: requestHeaders,
+                internal: {
+                    timestamp,
+                    accessKey,
+                    signatureSet: !!signature
+                }
             }
         });
     }
