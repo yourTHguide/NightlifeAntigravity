@@ -1669,7 +1669,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 finalStatus = 'Refunded';
             }
 
-            return {
+            const mapped = {
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
                 total_price: b.totalPrice || 0,
@@ -1677,6 +1677,14 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 booking_source: 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
+
+            // Debug first item
+            if (allBokunBookings.indexOf(b) === 0) {
+                console.log('DEBUG RAW BOKUN ITEM:', JSON.stringify(b, null, 2));
+                console.log('DEBUG MAPPED ROW:', JSON.stringify(mapped, null, 2));
+            }
+
+            return mapped;
         });
 
         // Task 2: Prevent Duplicates (Clean Slate - Delete existing bookings)
