@@ -1309,7 +1309,7 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         // Fetch ALL bookings from today onwards to avoid case-sensitivity issues
         const { data: rawBookings, error } = await supabase
             .from('bookings')
-            .select('event_date, quantity, total_amount_paid, payment_status')
+            .select('event_date, quantity, total_price, payment_status')
             .gte('event_date', todayStr)
             .order('event_date', { ascending: true });
 
@@ -1340,8 +1340,8 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
                 }
                 // Parse quantity as integer
                 eventMap[date].paid_count += (parseInt(b.quantity, 10) || 1);
-                // Task 2: Use total_amount_paid for revenue math
-                eventMap[date].total_revenue += (parseFloat(b.total_amount_paid) || 0);
+                // Task 2: Use total_price for revenue math (database uses legacy column)
+                eventMap[date].total_revenue += (parseFloat(b.total_price) || 0);
             } catch (rowErr) {
                 console.error(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
             }
@@ -1420,7 +1420,7 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         // Fetch ALL bookings for KPI calculations to avoid case-sensitivity issues
         const { data: rawBookings, error: bErr } = await supabase
             .from('bookings')
-            .select('id, guest_id, event_date, quantity, total_amount_paid, payment_status, booking_source, created_at');
+            .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at');
 
         console.error('SERVER DEBUG - RAW SUPABASE ROWS (KPIs):', JSON.stringify(rawBookings, null, 2));
 
@@ -1443,7 +1443,7 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         const allGuests = guests || [];
 
         // --- Total Revenue ---
-        const totalRevenue = paidBookings.reduce((sum, b) => sum + (parseFloat(b.total_amount_paid) || 0), 0);
+        const totalRevenue = paidBookings.reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
 
         // --- Events with bookings ---
         const eventDates = [...new Set(paidBookings.map(b => {
