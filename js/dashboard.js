@@ -251,6 +251,9 @@
             if (res.status === 401) return handleLogout();
             const data = await res.json();
             console.log('Raw Dashboard Events Data:', data);
+            if (data.debugRawData) {
+                console.error('ULTIMATE DEBUG DATA (Raw Bookings):', data.debugRawData);
+            }
             state.events = data.events || [];
             state.today = data.today || null;
             state.needsDateCount = data.needs_date_count || 0;

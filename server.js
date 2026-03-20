@@ -1375,7 +1375,8 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         return res.json({
             events,
             today: todayStr,
-            needs_date_count: (needsDateBookings || []).length
+            needs_date_count: (needsDateBookings || []).length,
+            debugRawData: rawBookings // ULTIMATE DEBUG: Pass raw bookings to frontend
         });
     } catch (err) {
         console.error('❌ Admin events error:', err);
