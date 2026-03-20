@@ -1605,9 +1605,10 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         }
 
         const data = await response.json();
-        const bokunBookings = data.results || [];
+        // Bokun v1 search response confirmed via debug payload to be in 'items' array
+        const bokunBookings = data.items || data.results || [];
         global.bokunDataSnapshot = bokunBookings; // Snapshot for crash report
-        console.log(`📡 Fetched ${bokunBookings.length} confirmed bookings from Bokun.`);
+        console.log(`📡 Fetched ${bokunBookings.length} confirmed bookings from Bokun (Items: ${data.items ? data.items.length : 'N/A'}, Results: ${data.results ? data.results.length : 'N/A'}).`);
 
         if (bokunBookings.length === 0) {
             return res.json({
