@@ -155,21 +155,30 @@
                 }
 
                 if (data.type === 'bookings_change') {
-                    console.log('📡 Booking', data.event, '— refreshing events + KPIs');
+                    console.log('📡 Booking change detected — refreshing');
                     loadEvents();
-                    if (state.kpis) loadKPIs();  // refresh if already loaded
-                    showRealtimeFlash('Booking ' + data.event + 'd');
+                    if (state.kpis) loadKPIs();
+                    showRealtimeFlash(formatEventMsg('Booking', data.event));
                 }
 
                 if (data.type === 'guests_change') {
-                    console.log('📡 Guest', data.event, '— refreshing CRM');
-                    if (state.guests.length > 0) loadGuests();  // refresh if already loaded
-                    showRealtimeFlash('Guest updated');
+                    console.log('📡 Guest change detected — refreshing');
+                    if (state.guests.length > 0) loadGuests();
+                    if (state.kpis) loadKPIs(); // Refresh KPIs too as they depend on guest data
+                    showRealtimeFlash(formatEventMsg('Guest', data.event));
                 }
             } catch (err) {
                 console.warn('SSE parse error:', err);
             }
         };
+
+        function formatEventMsg(entity, type) {
+            var action = 'updated';
+            var ev = (type || '').toLowerCase();
+            if (ev === 'insert') action = 'created';
+            if (ev === 'delete') action = 'deleted';
+            return entity + ' ' + action;
+        }
 
         source.onerror = function () {
             updateRealtimeIndicator(false);
@@ -281,12 +290,12 @@
             todayStr = bkkNow.toISOString().split('T')[0];
         }
 
-        // ⚠️ NEEDS DATE alert banner
+        // ⚠ NEEDS DATE alert banner
         var alertEl = $('events-alert');
         if (alertEl && state.needsDateCount > 0) {
             alertEl.style.display = 'flex';
-            alertEl.innerHTML = '<span>⚠️</span> <strong>' + state.needsDateCount + ' booking' +
-                (state.needsDateCount > 1 ? 's' : '') + '</strong> missing event date — check CRM for <code>⚠️ NEEDS DATE</code> tag';
+            alertEl.innerHTML = '<span>⚠</span> <strong>' + state.needsDateCount + ' booking' +
+                (state.needsDateCount > 1 ? 's' : '') + '</strong> missing event date — check CRM for <code>⚠ NEEDS DATE</code> tag';
         }
         // Group events by week
         function getWeekLabel(dateStr) {
