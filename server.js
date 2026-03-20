@@ -1662,7 +1662,6 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 total_price: b.totalPrice || 0,
                 payment_status: b.status || 'Confirmed',
                 booking_source: 'bokun',
-                platform: b.source || 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
         });
