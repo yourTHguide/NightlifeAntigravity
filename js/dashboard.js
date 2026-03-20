@@ -44,6 +44,7 @@
         $('btn-logout').addEventListener('click', handleLogout);
         $('btn-refresh-events').addEventListener('click', () => loadEvents());
         $('btn-refresh-kpis').addEventListener('click', () => loadKPIs());
+        $('btn-sync-bokun').addEventListener('click', () => syncBokunData());
 
         // Tab nav
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -499,6 +500,42 @@
                 </tr>
             `;
         }).join('');
+    }
+
+    async function syncBokunData() {
+        const btn = $('btn-sync-bokun');
+        if (!btn) return;
+
+        if (!confirm('This will fetch ALL active upcoming bookings from Bokun and add any missing ones to the dashboard. Proceed?')) {
+            return;
+        }
+
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+
+        try {
+            const res = await apiFetch('/sync-bokun', { method: 'POST' });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (res.status === 401) return handleLogout();
+                throw new Error(data.error || 'Sync failed');
+            }
+
+            alert(data.message || 'Sync complete');
+
+            // Refresh dashboard data
+            loadEvents();
+            if (state.activeTab === 'kpis') loadKPIs();
+            if (state.activeTab === 'crm') loadGuests();
+
+        } catch (err) {
+            console.error('Bokun sync error:', err);
+            alert(`Error: ${err.message}`);
+        } finally {
+            btn.classList.remove('btn-loading');
+            btn.disabled = false;
+        }
     }
 
     // ═══ KPIs ═══

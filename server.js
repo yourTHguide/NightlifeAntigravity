@@ -1535,6 +1535,127 @@ app.post('/api/admin/clean-statuses', adminAuth, async (req, res) => {
     }
 });
 
+// ═══ POST /api/admin/sync-bokun ═══
+// Fetches upcoming bookings directly from Bokun API and upserts them to Supabase
+app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
+    try {
+        console.log('🔄 Initiating Bokun historical sync...');
+
+        const accessKey = process.env.BOKUN_ACCESS_KEY;
+        const secretKey = process.env.BOKUN_SECRET_KEY;
+
+        if (!accessKey || !secretKey) {
+            console.error('❌ Bokun API credentials missing');
+            return res.status(500).json({ error: 'Bokun API not configured' });
+        }
+
+        // --- Fetch Upcoming Bookings from Bokun ---
+        // We use the search endpoint to find active bookings
+        const now = new Date();
+        const dateFrom = now.toISOString().split('T')[0];
+
+        // Helper to sign Bokun API requests
+        const path = '/booking.json/search';
+        const method = 'POST';
+        const timestamp = now.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:ssZ
+
+        const body = JSON.stringify({
+            bookingDateFrom: "2024-01-01", // Fetch from start of time to be safe
+            travelDateFrom: dateFrom,      // Only upcoming travel
+            status: ["CONFIRMED"],
+            pageSize: 200
+        });
+
+        const signatureStr = `${timestamp}${accessKey}${method}${path}${body}`;
+        const signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('hex');
+
+        const bokunUrl = `https://api.bokun.io${path}`;
+        const response = await fetch(bokunUrl, {
+            method,
+            headers: {
+                'X-Bokun-AccessKey': accessKey,
+                'X-Bokun-Date': timestamp,
+                'X-Bokun-Signature': signature,
+                'Content-Type': 'application/json'
+            },
+            body
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Bokun API error:', errorText);
+            throw new Error(`Bokun API responded with ${response.status}`);
+        }
+
+        const data = await response.json();
+        const bokunBookings = data.results || [];
+        console.log(`📡 Fetched ${bokunBookings.length} confirmed bookings from Bokun.`);
+
+        if (bokunBookings.length === 0) {
+            return res.json({ message: 'Sync complete. No new bookings found.', count: 0 });
+        }
+
+        // --- Map and Upsert to Supabase ---
+        const upsertData = bokunBookings.map(b => {
+            // Find the main guest (customer)
+            const customer = b.customer || {};
+            const firstName = customer.firstName || 'Unknown';
+            const lastName = customer.lastName || '';
+            const email = customer.email || '';
+            const phone = customer.phoneNumber || '';
+
+            // Sum up total quantity from items
+            let quantity = 0;
+            let eventDate = null;
+            let totalPrice = b.totalPrice || 0;
+
+            if (b.items && b.items.length > 0) {
+                b.items.forEach(item => {
+                    quantity += (item.totalPassengerCount || 0);
+                    if (!eventDate && item.date) {
+                        eventDate = item.date; // Use first item date as event date
+                    }
+                });
+            }
+
+            return {
+                booking_id: `bokun_${b.id}`, // Unique constraint column
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                phone: phone,
+                event_date: eventDate,
+                quantity: quantity || 1,
+                total_price: totalPrice,
+                payment_status: 'Confirmed',
+                booking_source: 'bokun',
+                metadata: { bokun_raw: { id: b.id, confirmationCode: b.confirmationCode } },
+                updated_at: new Date().toISOString()
+            };
+        }).filter(b => b.event_date); // Safety check
+
+        // Perform bulk upsert
+        const { error: upsertErr } = await supabase
+            .from('bookings')
+            .upsert(upsertData, {
+                onConflict: 'booking_id',
+                ignoreDuplicates: false
+            });
+
+        if (upsertErr) throw upsertErr;
+
+        console.log(`✅ Successfully synced ${upsertData.length} bookings to Supabase.`);
+        return res.json({
+            message: `Sync successful. Processed ${upsertData.length} upcoming Bokun bookings.`,
+            count: upsertData.length
+        });
+
+    } catch (err) {
+        console.error('❌ Bokun sync failed:', err);
+        return res.status(500).json({ error: 'Sync failed', detail: err.message });
+    }
+});
+
 
 // ═══════════════════════════════════════════════════
 //  POST /api/omnichannel-chat
