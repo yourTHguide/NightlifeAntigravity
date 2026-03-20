@@ -1310,9 +1310,9 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         if (error) throw error;
 
         // Apply case-insensitive filter on the backend
-        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured', 'pending'];
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured', 'pending', 'paid_online'];
         const bookings = (rawBookings || []).filter(b => {
-            const status = (b.payment_status || '').toLowerCase();
+            const status = String(b.payment_status || '').toLowerCase().trim();
             return validStatuses.includes(status);
         });
 
@@ -1402,9 +1402,9 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         if (bErr) throw bErr;
 
         // Apply case-insensitive filter
-        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured', 'pending'];
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured', 'pending', 'paid_online'];
         const paidBookings = (rawBookings || []).filter(b => {
-            const status = (b.payment_status || '').toLowerCase();
+            const status = String(b.payment_status || '').toLowerCase().trim();
             return validStatuses.includes(status);
         });
 

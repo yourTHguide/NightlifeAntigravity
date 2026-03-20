@@ -159,9 +159,7 @@
                 }
 
                 if (data.type === 'bookings_change') {
-                    console.log('📡 Booking change detected — refreshing');
-                    loadEvents();
-                    if (state.kpis) loadKPIs();
+                    console.log('📡 Booking change detected');
                     showRealtimeFlash(formatEventMsg('Booking', data.event));
                 }
 
