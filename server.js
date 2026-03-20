@@ -1579,8 +1579,9 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             pageSize: 200
         });
 
-        // Strict Bokun Signature: timestamp + accessKey + method + path + body
-        const signatureStr = `${timestamp}${accessKey}${method}${path}${body}`;
+        // Strict Bokun Signature: Date + AccessKey + Method + Path
+        // NOTE: Bokun v1 does NOT include the body in the signature string.
+        const signatureStr = `${timestamp}${accessKey}${method}${path}`;
         signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('hex');
 
         endpointUrl = `https://api.bokun.io${path}`;
