@@ -1555,13 +1555,13 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         const dateFrom = now.toISOString().split('T')[0];
 
         // Helper to sign Bokun API requests
-        const path = '/booking.json/search';
+        const path = '/booking.json/query';
         const method = 'POST';
         const timestamp = now.toISOString().replace(/\.\d{3}/, ''); // YYYY-MM-DDTHH:mm:ssZ
 
         const body = JSON.stringify({
-            bookingDateFrom: "2024-01-01", // Fetch from start of time to be safe
-            travelDateFrom: dateFrom,      // Only upcoming travel
+            bookingDateFrom: "2024-01-01",
+            travelDateFrom: dateFrom,
             status: ["CONFIRMED"],
             pageSize: 200
         });
