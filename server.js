@@ -1566,9 +1566,9 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             pageSize: 200
         });
 
+        // Strict Bokun Signature: timestamp + accessKey + method + path + body
         const signatureStr = `${timestamp}${accessKey}${method}${path}${body}`;
         const signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('hex');
-
         const bokunUrl = `https://api.bokun.io${path}`;
         const response = await fetch(bokunUrl, {
             method,
@@ -1656,7 +1656,17 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         return res.status(500).json({
             error: err.message,
             stack: err.stack,
-            debugRawData: typeof bokunDataSnapshot !== 'undefined' ? bokunDataSnapshot : 'Data fetch failed/not reached'
+            debugRawData: typeof bokunDataSnapshot !== 'undefined' ? bokunDataSnapshot : 'Data fetch failed/not reached',
+            debugRequest: {
+                url: typeof bokunUrl !== 'undefined' ? bokunUrl : 'Not built',
+                method: typeof method !== 'undefined' ? method : 'POST',
+                headers: typeof signature !== 'undefined' ? {
+                    'X-Bokun-AccessKey': accessKey,
+                    'X-Bokun-Date': timestamp,
+                    'X-Bokun-Signature': signature,
+                    'Content-Type': 'application/json'
+                } : 'Headers not built'
+            }
         });
     }
 });
