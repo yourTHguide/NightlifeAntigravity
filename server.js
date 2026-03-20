@@ -1589,6 +1589,7 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         const data = await response.json();
         const bokunBookings = data.results || [];
+        global.bokunDataSnapshot = bokunBookings; // Snapshot for crash report
         console.log(`📡 Fetched ${bokunBookings.length} confirmed bookings from Bokun.`);
 
         if (bokunBookings.length === 0) {
@@ -1651,8 +1652,12 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         });
 
     } catch (err) {
-        console.error('❌ Bokun sync failed:', err);
-        return res.status(500).json({ error: 'Sync failed', detail: err.message });
+        console.error('❌ Bokun sync fatal error:', err);
+        return res.status(500).json({
+            error: err.message,
+            stack: err.stack,
+            debugRawData: typeof bokunDataSnapshot !== 'undefined' ? bokunDataSnapshot : 'Data fetch failed/not reached'
+        });
     }
 });
 

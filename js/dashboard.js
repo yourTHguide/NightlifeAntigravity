@@ -519,6 +519,7 @@
 
             if (!res.ok) {
                 if (res.status === 401) return handleLogout();
+                console.error('SYNC CRASH REPORT:', data);
                 throw new Error(data.error || 'Sync failed');
             }
 
