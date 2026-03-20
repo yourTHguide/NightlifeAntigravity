@@ -44,7 +44,10 @@
         $('btn-logout').addEventListener('click', handleLogout);
         $('btn-refresh-events').addEventListener('click', () => loadEvents());
         $('btn-refresh-kpis').addEventListener('click', () => loadKPIs());
-        $('btn-sync-bokun').addEventListener('click', () => syncBokunData());
+        $('btn-sync-bokun').addEventListener('click', (e) => {
+            if (e) e.preventDefault();
+            syncBokunData();
+        });
 
         // Tab nav
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -518,7 +521,11 @@
         btn.disabled = true;
 
         try {
-            const res = await apiFetch('/sync-bokun', { method: 'POST' });
+            console.log('📡 Sending sync request (POST /api/admin/sync-bokun)...');
+            const res = await apiFetch('/sync-bokun', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
             const rawText = await res.text();
             let data;
 
