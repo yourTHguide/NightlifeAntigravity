@@ -1610,7 +1610,11 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         console.log(`📡 Fetched ${bokunBookings.length} confirmed bookings from Bokun.`);
 
         if (bokunBookings.length === 0) {
-            return res.json({ message: 'Sync complete. No new bookings found.', count: 0 });
+            return res.json({
+                message: 'Sync complete. No new bookings found.',
+                count: 0,
+                rawBokunData: data
+            });
         }
 
         // --- Map and Upsert to Supabase ---
@@ -1665,7 +1669,8 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         console.log(`✅ Successfully synced ${upsertData.length} bookings to Supabase.`);
         return res.json({
             message: `Sync successful. Processed ${upsertData.length} upcoming Bokun bookings.`,
-            count: upsertData.length
+            count: upsertData.length,
+            rawBokunData: data
         });
 
     } catch (err) {
