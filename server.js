@@ -1301,26 +1301,32 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         const bkkNow = new Date(now.getTime() + bkkOffset);
         const todayStr = bkkNow.toISOString().split('T')[0];
 
-        // Fetch ONLY confirmed bookings: 'Paid' (Stripe) or 'Confirmed' (Bokun OTA)
-        // This excludes 'Pending' (abandoned Stripe checkouts) to protect 7 PM cut-off accuracy
-        const { data: bookings, error } = await supabase
+        // Fetch ALL bookings from today onwards to avoid case-sensitivity issues
+        const { data: rawBookings, error } = await supabase
             .from('bookings')
             .select('event_date, quantity, total_price, payment_status')
             .gte('event_date', todayStr)
-            .in('payment_status', ['Paid', 'paid', 'Confirmed', 'confirmed', 'completed', 'Completed'])
             .order('event_date', { ascending: true });
 
         if (error) throw error;
 
+        // Apply case-insensitive filter on the backend
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured'];
+        const bookings = (rawBookings || []).filter(b => {
+            const status = (b.payment_status || '').toLowerCase();
+            return validStatuses.includes(status);
+        });
+
         // Group by date — ONLY paid/confirmed bookings count toward headcount
         const eventMap = {};
-        (bookings || []).forEach(b => {
+        bookings.forEach(b => {
             const date = b.event_date;
             if (!eventMap[date]) {
                 eventMap[date] = { date, paid_count: 0, total_revenue: 0 };
             }
-            eventMap[date].paid_count += (b.quantity || 1);
-            eventMap[date].total_revenue += (b.total_price || 0);
+            // Parse quantity as integer
+            eventMap[date].paid_count += (parseInt(b.quantity, 10) || 1);
+            eventMap[date].total_revenue += (parseFloat(b.total_price) || 0);
         });
 
         // Add upcoming dates for next 30 days — 6 days/week (every day except Monday)
@@ -1381,13 +1387,19 @@ app.get('/api/admin/guests', adminAuth, async (req, res) => {
 // Auto-calculates core business metrics
 app.get('/api/admin/kpis', adminAuth, async (req, res) => {
     try {
-        // Fetch ONLY paid/confirmed bookings for KPI calculations
-        const { data: bookings, error: bErr } = await supabase
+        // Fetch ALL bookings for KPI calculations to avoid case-sensitivity issues
+        const { data: rawBookings, error: bErr } = await supabase
             .from('bookings')
-            .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at')
-            .in('payment_status', ['Paid', 'paid', 'Confirmed', 'confirmed', 'completed', 'Completed']);
+            .select('id, guest_id, event_date, quantity, total_price, payment_status, booking_source, created_at');
 
         if (bErr) throw bErr;
+
+        // Apply case-insensitive filter
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured'];
+        const paidBookings = (rawBookings || []).filter(b => {
+            const status = (b.payment_status || '').toLowerCase();
+            return validStatuses.includes(status);
+        });
 
         // Fetch all guests
         const { data: guests, error: gErr } = await supabase
@@ -1396,7 +1408,6 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
 
         if (gErr) throw gErr;
 
-        const paidBookings = bookings || [];
         const allGuests = guests || [];
 
         // --- Total Revenue ---
@@ -1412,7 +1423,7 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
             : 0;
 
         // --- Avg Guests per Event ---
-        const totalPax = paidBookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
+        const totalPax = paidBookings.reduce((sum, b) => sum + (parseInt(b.quantity, 10) || 1), 0);
         const avgGuestsPerEvent = totalEventsWithBookings > 0
             ? (totalPax / totalEventsWithBookings)
             : 0;

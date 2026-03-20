@@ -250,6 +250,7 @@
             const res = await apiFetch('/events');
             if (res.status === 401) return handleLogout();
             const data = await res.json();
+            console.log('Raw Dashboard Events Data:', data);
             state.events = data.events || [];
             state.today = data.today || null;
             state.needsDateCount = data.needs_date_count || 0;
@@ -504,7 +505,9 @@
         try {
             const res = await apiFetch('/kpis');
             if (res.status === 401) return handleLogout();
-            state.kpis = await res.json();
+            const data = await res.json();
+            console.log('Raw Dashboard KPIs Data:', data);
+            state.kpis = data;
             renderKPIs();
         } catch (err) {
             console.error('KPIs load error:', err);
