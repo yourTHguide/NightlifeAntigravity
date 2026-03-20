@@ -1304,11 +1304,11 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         // Fetch ALL bookings from today onwards to avoid case-sensitivity issues
         const { data: rawBookings, error } = await supabase
             .from('bookings')
-            .select('*')
+            .select('event_date, quantity, total_amount_paid, payment_status')
             .gte('event_date', todayStr)
             .order('event_date', { ascending: true });
 
-        console.log('RAW SUPABASE ROWS:', rawBookings);
+        console.log('RAW SUPABASE ROWS (Events):', rawBookings);
 
         if (error) throw error;
 
@@ -1322,8 +1322,8 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         // Group by date — ONLY paid/confirmed bookings count toward headcount
         const eventMap = {};
         bookings.forEach(b => {
-            // Task 1: Strict string split to extract YYYY-MM-DD
-            const date = b.event_date ? String(b.event_date).split('T')[0] : null;
+            // Fix Date Matching: Extract YYYY-MM-DD from potential ISO timestamp
+            const date = (b.event_date || '').split('T')[0];
             if (!date) return;
 
             if (!eventMap[date]) {
@@ -1331,10 +1331,8 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
             }
             // Parse quantity as integer
             eventMap[date].paid_count += (parseInt(b.quantity, 10) || 1);
-
-            // Allow total_amount_paid or total_price
-            const revenue = parseFloat(b.total_amount_paid) || parseFloat(b.total_price) || 0;
-            eventMap[date].total_revenue += revenue;
+            // Task 2: Use total_amount_paid for revenue math
+            eventMap[date].total_revenue += (parseFloat(b.total_amount_paid) || 0);
         });
 
         // Add upcoming dates for next 30 days — 6 days/week (every day except Monday)
@@ -1398,9 +1396,9 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         // Fetch ALL bookings for KPI calculations to avoid case-sensitivity issues
         const { data: rawBookings, error: bErr } = await supabase
             .from('bookings')
-            .select('*');
+            .select('id, guest_id, event_date, quantity, total_amount_paid, payment_status, booking_source, created_at');
 
-        console.log('RAW SUPABASE ROWS:', rawBookings);
+        console.log('RAW SUPABASE ROWS (KPIs):', rawBookings);
 
         if (bErr) throw bErr;
 
@@ -1421,13 +1419,10 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         const allGuests = guests || [];
 
         // --- Total Revenue ---
-        const totalRevenue = paidBookings.reduce((sum, b) => {
-            const revenue = parseFloat(b.total_amount_paid) || parseFloat(b.total_price) || 0;
-            return sum + revenue;
-        }, 0);
+        const totalRevenue = paidBookings.reduce((sum, b) => sum + (parseFloat(b.total_amount_paid) || 0), 0);
 
         // --- Events with bookings ---
-        const eventDates = [...new Set(paidBookings.map(b => b.event_date ? String(b.event_date).split('T')[0] : null).filter(Boolean))];
+        const eventDates = [...new Set(paidBookings.map(b => (b.event_date || '').split('T')[0]))].filter(Boolean);
         const totalEventsWithBookings = eventDates.length;
 
         // --- Avg Revenue per Event ---
@@ -1447,7 +1442,8 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         paidBookings.forEach(b => {
             if (!b.guest_id) return;
             if (!guestEventMap[b.guest_id]) guestEventMap[b.guest_id] = new Set();
-            guestEventMap[b.guest_id].add(b.event_date);
+            const date = (b.event_date || '').split('T')[0];
+            if (date) guestEventMap[b.guest_id].add(date);
         });
 
         const uniqueBookedGuests = Object.keys(guestEventMap).length;
