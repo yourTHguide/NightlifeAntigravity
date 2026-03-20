@@ -1568,59 +1568,80 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
         const hh = String(now.getUTCHours()).padStart(2, '0');
         const min = String(now.getUTCMinutes()).padStart(2, '0');
         const ss = String(now.getUTCSeconds()).padStart(2, '0');
-        timestamp = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+        // Pagination and Sorting Logic
+        let page = 1;
+        const pageSize = 200;
+        let allBokunBookings = [];
+        let totalHits = 0;
+        let lastFullResponse = null;
 
-        const dateFrom = `${yyyy}-${mm}-${dd}`;
+        console.log('🔄 Starting paginated Bokun sync...');
 
-        const body = JSON.stringify({
-            bookingDateFrom: "2024-01-01",
-            travelDateFrom: dateFrom, // Exact YYYY-MM-DD
-            status: ["CONFIRMED"],
-            pageSize: 200
-        });
+        while (true) {
+            // Bokun strictly requires: YYYY-MM-DD HH:mm:ss (UTC) refresh inside loop for safety
+            const loopNow = new Date();
+            const yyyyL = loopNow.getUTCFullYear();
+            const mmL = String(loopNow.getUTCMonth() + 1).padStart(2, '0');
+            const ddL = String(loopNow.getUTCDate()).padStart(2, '0');
+            const hhL = String(loopNow.getUTCHours()).padStart(2, '0');
+            const minL = String(loopNow.getUTCMinutes()).padStart(2, '0');
+            const ssL = String(loopNow.getUTCSeconds()).padStart(2, '0');
+            const loopTimestamp = `${yyyyL}-${mmL}-${ddL} ${hhL}:${minL}:${ssL}`;
 
-        // Strict Bokun Signature: Date + AccessKey + Method + Path
-        // NOTE: Bokun v1 does NOT include the body in the signature string.
-        const signatureStr = `${timestamp}${accessKey}${method}${path}`;
-        signature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('base64');
+            // Strict Bokun Signature
+            const signatureStr = `${loopTimestamp}${accessKey}${method}${path}`;
+            const loopSignature = crypto.createHmac('sha1', secretKey).update(signatureStr).digest('base64');
 
-        endpointUrl = `https://api.bokun.io${path}`;
-        requestHeaders = {
-            'X-Bokun-AccessKey': accessKey,
-            'X-Bokun-Date': timestamp,
-            'X-Bokun-Signature': signature,
-            'Content-Type': 'application/json'
-        };
+            const body = JSON.stringify({
+                bookingDateFrom: "2024-01-01",
+                travelDateFrom: dateFrom,
+                status: ["CONFIRMED"],
+                pageSize: pageSize,
+                page: page,
+                sortField: "TRAVEL_DATE",
+                sortOrder: "DESCENDING"
+            });
 
-        const response = await fetch(endpointUrl, {
-            method,
-            headers: requestHeaders,
-            body
-        });
+            const response = await fetch(`https://api.bokun.io${path}`, {
+                method,
+                headers: {
+                    'X-Bokun-AccessKey': accessKey,
+                    'X-Bokun-Date': loopTimestamp,
+                    'X-Bokun-Signature': loopSignature,
+                    'Content-Type': 'application/json'
+                },
+                body
+            });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Bokun API error:', errorText);
-            throw new Error(`Bokun API responded with ${response.status}: ${errorText}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Bokun API Page ${page} error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            const items = data.items || data.results || [];
+            allBokunBookings = allBokunBookings.concat(items);
+            totalHits = data.totalHits || 0;
+            lastFullResponse = data;
+
+            console.log(`📑 Fetched page ${page} (${items.length} items). Total so far: ${allBokunBookings.length}/${totalHits}`);
+
+            if (items.length < pageSize || allBokunBookings.length >= totalHits) {
+                break; // End of data
+            }
+            page++;
         }
 
-        const data = await response.json();
-        // Bokun v1 search response confirmed via debug payload to be in 'items' array
-        const bokunBookings = data.items || data.results || [];
-        global.bokunDataSnapshot = bokunBookings; // Snapshot for crash report
-        console.log(`📡 Fetched ${bokunBookings.length} confirmed bookings from Bokun (Items: ${data.items ? data.items.length : 'N/A'}, Results: ${data.results ? data.results.length : 'N/A'}).`);
-
-        if (bokunBookings.length === 0) {
+        if (allBokunBookings.length === 0) {
             return res.json({
                 message: 'Sync complete. No new bookings found.',
                 count: 0,
-                rawBokunData: data
+                rawBokunData: lastFullResponse
             });
         }
 
-        // --- Map and Upsert to Supabase (Strictly Transactional) ---
-        const upsertData = bokunBookings.map(b => {
-            // Sum up total quantity and extract first event date from line items
+        // --- Map and Insert to Supabase (Strictly Transactional) ---
+        const upsertData = allBokunBookings.map(b => {
             let totalQuantity = 0;
             let firstEventDate = null;
             if (b.items && b.items.length > 0) {
@@ -1630,7 +1651,6 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 });
             }
 
-            // Standardize Date and Timestamp for strict schema compliance
             const rawEventDate = firstEventDate || b.startDate || b.creationDate;
             let finalEventDate = null;
             if (rawEventDate) {
@@ -1648,9 +1668,9 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
                 booking_source: 'bokun',
                 created_at: new Date(b.creationDate || Date.now()).toISOString()
             };
-        }); // No filters. Strictly mapping to valid database columns only.
+        });
 
-        // Perform bulk insert (Supabase auto-generates UUID 'id')
+        // Perform bulk insert
         const { error: insertErr } = await supabase
             .from('bookings')
             .insert(upsertData);
@@ -1659,9 +1679,9 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
 
         console.log(`✅ Successfully synced ${upsertData.length} bookings to Supabase.`);
         return res.json({
-            message: `Sync successful. Processed ${upsertData.length} historical Bokun bookings.`,
+            message: `Sync successful. Processed ${upsertData.length} historical Bokun bookings (all ${page} pages).`,
             count: upsertData.length,
-            rawBokunData: data
+            rawBokunData: lastFullResponse
         });
 
     } catch (err) {
@@ -1673,11 +1693,11 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             debugRequest: {
                 url: endpointUrl,
                 method: method,
-                headers: requestHeaders,
-                internal: {
-                    timestamp,
-                    accessKey,
-                    signatureSet: !!signature
+                headers: {
+                    'X-Bokun-AccessKey': accessKey,
+                    'X-Bokun-Date': timestamp,
+                    'X-Bokun-Signature': !!signature,
+                    'Content-Type': 'application/json'
                 }
             }
         });
