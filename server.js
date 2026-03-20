@@ -1641,7 +1641,6 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             }
 
             return {
-                id: `bokun_${b.id}`, // Strictly map to official schema columns only
                 event_date: finalEventDate,
                 quantity: totalQuantity || 1,
                 total_price: b.totalPrice || 0,
@@ -1651,15 +1650,12 @@ app.post('/api/admin/sync-bokun', adminAuth, async (req, res) => {
             };
         }); // No filters. Strictly mapping to valid database columns only.
 
-        // Perform bulk upsert
-        const { error: upsertErr } = await supabase
+        // Perform bulk insert (Supabase auto-generates UUID 'id')
+        const { error: insertErr } = await supabase
             .from('bookings')
-            .upsert(upsertData, {
-                onConflict: 'id',
-                ignoreDuplicates: false
-            });
+            .insert(upsertData);
 
-        if (upsertErr) throw upsertErr;
+        if (insertErr) throw insertErr;
 
         console.log(`✅ Successfully synced ${upsertData.length} bookings to Supabase.`);
         return res.json({
