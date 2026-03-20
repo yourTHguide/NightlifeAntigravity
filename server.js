@@ -1322,20 +1322,24 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
         // Group by date — ONLY paid/confirmed bookings count toward headcount
         const eventMap = {};
         bookings.forEach(b => {
-            // Fix Date Matching: Extract YYYY-MM-DD from potential ISO timestamp
-            // Ensure event_date is a string before splitting to prevent null reference crashes
-            if (!b.event_date) return;
-            const dateStr = String(b.event_date);
-            const date = dateStr.split('T')[0];
-            if (!date || date === 'null' || date === 'undefined') return;
+            try {
+                // Fix Date Matching: Extract YYYY-MM-DD from potential ISO timestamp
+                // Ensure event_date is a string before splitting to prevent null reference crashes
+                if (!b.event_date) return;
+                const dateStr = String(b.event_date);
+                const date = dateStr.split('T')[0];
+                if (!date || date === 'null' || date === 'undefined') return;
 
-            if (!eventMap[date]) {
-                eventMap[date] = { date, paid_count: 0, total_revenue: 0 };
+                if (!eventMap[date]) {
+                    eventMap[date] = { date, paid_count: 0, total_revenue: 0 };
+                }
+                // Parse quantity as integer
+                eventMap[date].paid_count += (parseInt(b.quantity, 10) || 1);
+                // Task 2: Use total_amount_paid for revenue math
+                eventMap[date].total_revenue += (parseFloat(b.total_amount_paid) || 0);
+            } catch (rowErr) {
+                console.warn(`⚠ Skipping malformed booking row ${b.id || 'unknown'}:`, rowErr.message);
             }
-            // Parse quantity as integer
-            eventMap[date].paid_count += (parseInt(b.quantity, 10) || 1);
-            // Task 2: Use total_amount_paid for revenue math
-            eventMap[date].total_revenue += (parseFloat(b.total_amount_paid) || 0);
         });
 
         // Add upcoming dates for next 30 days — 6 days/week (every day except Monday)
@@ -1446,11 +1450,15 @@ app.get('/api/admin/kpis', adminAuth, async (req, res) => {
         // A repeat guest is someone who has 2+ paid bookings on different event dates
         const guestEventMap = {};
         paidBookings.forEach(b => {
-            if (!b.guest_id || !b.event_date) return;
-            if (!guestEventMap[b.guest_id]) guestEventMap[b.guest_id] = new Set();
-            const dateStr = String(b.event_date);
-            const date = dateStr.split('T')[0];
-            if (date && date !== 'null' && date !== 'undefined') guestEventMap[b.guest_id].add(date);
+            try {
+                if (!b.guest_id || !b.event_date) return;
+                if (!guestEventMap[b.guest_id]) guestEventMap[b.guest_id] = new Set();
+                const dateStr = String(b.event_date);
+                const date = dateStr.split('T')[0];
+                if (date && date !== 'null' && date !== 'undefined') guestEventMap[b.guest_id].add(date);
+            } catch (rowErr) {
+                console.warn(`⚠ Skipping malformed KPI booking row ${b.id || 'unknown'}:`, rowErr.message);
+            }
         });
 
         const uniqueBookedGuests = Object.keys(guestEventMap).length;
