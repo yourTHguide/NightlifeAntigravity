@@ -19,6 +19,15 @@ if (TRACKED_NIGHT) {
     console.log(`🎯 Smart Traffic: auto-routing to ${TRACKED_NIGHT}`);
 }
 
+// 🛡️ Security: XSS Prevention Helper
+function escHtml(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🌃 Bangkok Club Crawl: System Initialized.');
 
@@ -191,8 +200,13 @@ function initSelectNightCards() {
             subtitleEl.innerText = `${shortTitle} | ${dayStr} • ${eventTime}`;
 
             descEl.innerText = data.desc;
-            featuresEl.innerHTML = data.features.map(f => `<li>${f}</li>`).join('');
-            galleryEl.innerHTML = data.gallery.map(img => `<img src="${img}" alt="${dayStr} Event" class="expansion-gallery-img">`).join('');
+            if (featuresEl) {
+                featuresEl.innerHTML = (data.features || []).map(f => `<li>${escHtml(f)}</li>`).join('');
+            }
+            if (galleryEl) {
+                galleryEl.innerHTML = (data.gallery || []).map(img => `<img src="${escHtml(img)}" alt="${escHtml(dayStr)} Event" class="expansion-gallery-img">`).join('');
+            }
+
             timeEl.innerText = data.time;
             locationEl.innerText = data.location;
             priceEl.innerText = data.price;
@@ -1102,10 +1116,14 @@ function initChatAssistant() {
 
         // Support HTML in AI messages (for booking links, etc.)
         if (role === 'ai') {
+            // For AI messages, we trust our OWN template links but should sanitize the rest if it's external
+            // Currently, it's all internal hardcoded templates + the booking success link handler
             msgDiv.innerHTML = content;
         } else {
+            // User messages MUST be textContent
             msgDiv.textContent = content;
         }
+
 
         messagesContainer.appendChild(msgDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -1114,7 +1132,8 @@ function initChatAssistant() {
     const showTyping = () => {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'ai-msg typing-indicator';
-        typingDiv.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+        typingDiv.textContent = '...'; // Safer than innerHTML for simple text
+
         typingDiv.id = 'typing-indicator';
         messagesContainer.appendChild(typingDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;

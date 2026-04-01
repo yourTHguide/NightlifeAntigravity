@@ -143,8 +143,10 @@
         disconnectRealtime();
         if (!state.token) return;
 
-        var url = API_BASE + '/stream?token=' + encodeURIComponent(state.token);
-        var source = new EventSource(url);
+        // Refactored: No more token in URL (uses secure httpOnly cookie)
+        var url = API_BASE + '/stream';
+        var source = new EventSource(url, { withCredentials: true });
+
         state.sseSource = source;
         state.sseRetryCount = 0;
 
@@ -473,12 +475,13 @@
         tbody.innerHTML = guests.map(g => {
             const name = [g.first_name, g.last_name].filter(Boolean).join(' ') || 'Unknown';
             const phone = g.phone
-                ? `<span class="phone-cell">${g.phone}</span>`
+                ? `<span class="phone-cell">${escHtml(g.phone)}</span>`
                 : `<span class="phone-missing">Missing</span>`;
 
-            const sourceClass = (g.source || '').toLowerCase();
-            const source = g.source
-                ? `<span class="source-badge ${sourceClass}">${g.source}</span>`
+            const rawSource = g.source || '';
+            const sourceClass = escHtml(rawSource.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+            const source = rawSource
+                ? `<span class="source-badge ${sourceClass}">${escHtml(rawSource)}</span>`
                 : '<span class="source-badge">—</span>';
 
             const tags = (g.tags || []).map(t => {
@@ -488,8 +491,9 @@
                 else if (t.includes('Missing')) cls = 'tag-missing';
                 else if (t.includes('OTA')) cls = 'tag-ota';
                 else if (t.includes('Interested')) cls = 'tag-warning';
-                return `<span class="tag-chip ${cls}">${t}</span>`;
+                return `<span class="tag-chip ${cls}">${escHtml(t)}</span>`;
             }).join('');
+
 
             const joined = g.created_at
                 ? new Date(g.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })

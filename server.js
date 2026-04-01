@@ -19,6 +19,8 @@ const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+
 
 // ——— Config ———
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -38,6 +40,7 @@ const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || `http://localhost:${PORT}`;
 
 // ——— Email Config (Gmail SMTP via Nodemailer) ———
+// ——— Email Config (Gmail SMTP via Nodemailer) ———
 const emailTransporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -47,6 +50,23 @@ const emailTransporter = nodemailer.createTransport({
 });
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'bestnightlifethailand@gmail.com';
+
+// ——— Security: Rate Limiters ———
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts
+    message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const checkoutLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // 10 attempts per hour
+    message: { error: 'Too many booking attempts. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 /**
  * Sends an email using the configured Gmail transporter.
@@ -226,7 +246,8 @@ app.use(express.static(path.join(__dirname)));
 //  POST /api/create-checkout
 //  Frontend calls this when user clicks "CONFIRM & PAY"
 // ═══════════════════════════════════════════════════
-app.post('/api/create-checkout', async (req, res) => {
+app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
+
     try {
         const { guest, event_date, pax, promo_code, event_day, source_channel } = req.body;
 
@@ -478,10 +499,11 @@ app.post('/api/stripe-webhook', async (req, res) => {
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
     } else {
-        // Dev mode: skip signature verification
-        console.warn('⚠️ DEV MODE: Skipping webhook signature verification');
-        event = JSON.parse(req.body);
+        // Webhook secret MUST be configured in production
+        console.error('❌ STRIPE_WEBHOOK_SECRET is missing. Webhook rejected.');
+        return res.status(400).send('Webhook configuration error');
     }
+
 
     // ——— 2. Handle checkout.session.completed ———
     if (event.type === 'checkout.session.completed') {
@@ -1167,6 +1189,7 @@ function createAdminToken(email) {
 
 function verifyAdminToken(token) {
     try {
+        if (!token) return null;
         const [encoded, sig] = token.split('.');
         if (!encoded || !sig) return null;
         const expectedSig = crypto.createHmac('sha256', TOKEN_SECRET).update(encoded).digest('base64url');
@@ -1179,6 +1202,19 @@ function verifyAdminToken(token) {
         return null;
     }
 }
+
+// Helper to parse cookies without a library
+function getCookie(req, name) {
+    const list = {};
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) return null;
+    cookieHeader.split(';').forEach(cookie => {
+        let [k, ...v] = cookie.split('=');
+        list[k.trim()] = v.join('=');
+    });
+    return list[name] || null;
+}
+
 
 // --- Admin Auth Middleware ---
 function adminAuth(req, res, next) {
@@ -1222,11 +1258,14 @@ function broadcastSSE(data) {
 
 // SSE endpoint — admin-authenticated streaming connection
 app.get('/api/admin/stream', (req, res) => {
-    // Verify admin token from query param (SSE can't send headers)
-    const token = req.query.token;
+    // SECURITY: Use secure cookies for SSE to avoid exposing token in URL
+    const token = getCookie(req, 'admin_token');
+
     if (!token || !verifyAdminToken(token)) {
+        console.log('🚫 SSE unauthorized attempt blocked');
         return res.status(401).json({ error: 'Unauthorized' });
     }
+
 
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -1254,7 +1293,7 @@ app.get('/api/admin/stream', (req, res) => {
 });
 
 // ═══ POST /api/admin/login ═══
-app.post('/api/admin/login', async (req, res) => {
+app.post('/api/admin/login', loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -1279,6 +1318,19 @@ app.post('/api/admin/login', async (req, res) => {
         console.log(`✅ Admin login: ${email}`);
         const token = createAdminToken(email.toLowerCase());
 
+        // Set secure, httpOnly session cookie for SSE and general auth hardening
+        res.cookie && res.status(200).cookie('admin_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: TOKEN_EXPIRY_HOURS * 3600000
+        });
+
+        // If we don't have res.cookie (standard Express does, but just in case)
+        if (!res.cookie) {
+            res.setHeader('Set-Cookie', `admin_token=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${TOKEN_EXPIRY_HOURS * 3600}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+        }
+
         return res.json({
             token,
             email: data.user.email,
@@ -1289,6 +1341,7 @@ app.post('/api/admin/login', async (req, res) => {
         return res.status(500).json({ error: 'Login failed' });
     }
 });
+
 
 // ═══ GET /api/admin/events ═══
 // Returns upcoming events grouped by date with paid headcount
