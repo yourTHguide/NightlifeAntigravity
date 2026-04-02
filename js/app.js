@@ -213,19 +213,7 @@ function initSelectNightCards() {
 
             // Setup book button bridging
             bookBtn.onclick = () => {
-                closeBtn.click(); // close the expansion modal
-                setTimeout(() => {
-                    const bookingModal = document.getElementById('booking-modal');
-                    if (bookingModal) {
-                        bookingModal.classList.add('active');
-                        // Pre-select day 
-                        const dayInput = bookingModal.querySelector(`input[name="event-day"][value="${data.bookingValue}"]`);
-                        if (dayInput) {
-                            dayInput.checked = true;
-                            dayInput.dispatchEvent(new Event('change'));
-                        }
-                    }
-                }, 550); // wait for scale down animation to finish
+                window.location.href = `/book?night=${lookupDay.toLowerCase()}`;
             };
 
             // Set initial position starting from the card's position
@@ -410,18 +398,7 @@ function initRoutePreview() {
     // Secure My Spot logic
     sheetBookingBtn.onclick = (e) => {
         e.stopPropagation();
-        bottomSheet.classList.remove('active');
-        const modal = document.getElementById('booking-modal');
-        if (modal) {
-            modal.classList.add('active');
-            // Auto-select day in wizard based on toggle
-            const val = currentDay === 'friday' ? '5' : '6';
-            const dayInput = modal.querySelector(`input[name="event-day"][value="${val}"]`);
-            if (dayInput) {
-                dayInput.checked = true;
-                dayInput.dispatchEvent(new Event('change'));
-            }
-        }
+        window.location.href = `/book?night=${currentDay}`;
     };
 
     // Initial render
@@ -600,449 +577,14 @@ function initFAQSection() {
 }
 
 /**
- * 🧙‍♂️ Initialize Booking Wizard
+ * 🧙‍♂️ Initialize Booking Wizard (Redirect)
  */
 function initBookingWizard() {
-    const modal = document.getElementById('booking-modal');
+    // Redirection logic for other pages is already handled by Universal Triggers
+    // but we can keep a manual trigger handler here for programmatic calls
     const openBtn = document.getElementById('start-booking');
-    const closeBtn = document.getElementById('close-booking');
-
-    if (!modal) return;
-
-    // Open/Close logic
-    const openModal = () => modal.classList.add('active');
-    const closeModal = () => modal.classList.remove('active');
-
-    // Close on overlay click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-
-    if (closeBtn) closeBtn.onclick = closeModal;
-
-    // Wizard Navigation
-    let currentStep = 1;
-    const steps = modal.querySelectorAll('.wizard-step');
-    const nextBtns = modal.querySelectorAll('.next-step');
-    const prevBtns = modal.querySelectorAll('.prev-step');
-
-    const showStep = (stepNum) => {
-        steps.forEach((step, index) => {
-            step.style.display = (index + 1 === stepNum) ? 'block' : 'none';
-        });
-        currentStep = stepNum;
-        if (stepNum === 2) renderCalendar();
-        if (stepNum === 3) initGuestBlocks();
-        if (stepNum === 4) updateSummary();
-    };
-
-    nextBtns.forEach(btn => {
-        btn.onclick = () => {
-            if (validateStep(currentStep)) {
-                showStep(currentStep + 1);
-            }
-        };
-    });
-
-    prevBtns.forEach(btn => {
-        btn.onclick = () => {
-            showStep(currentStep - 1);
-        };
-    });
-
-    // Step 1: Day selection enablement
-    const dayOptions = modal.querySelectorAll('input[name="event-day"]');
-    dayOptions.forEach(opt => {
-        opt.onchange = () => {
-            modal.querySelector('#step-1 .next-step').disabled = false;
-        };
-    });
-
-    // Step 2: Calendar Rendering
-    let currentCalMonth = new Date().getMonth();
-    let currentCalYear = new Date().getFullYear();
-
-    function renderCalendar() {
-        const wrapper = document.getElementById('calendar-wrapper');
-        const dayInput = modal.querySelector('input[name="event-day"]:checked');
-        const targetDay = parseInt(dayInput.value);
-
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-        let monthOptions = monthNames.map((m, i) => `<option value="${i}" ${i === currentCalMonth ? 'selected' : ''}>${m}</option>`).join('');
-        let yearOptions = [2026, 2027].map(y => `<option value="${y}" ${y === currentCalYear ? 'selected' : ''}>${y}</option>`).join('');
-
-        let html = `
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <select class="calendar-select" id="cal-month-select">${monthOptions}</select>
-                    <select class="calendar-select" id="cal-year-select">${yearOptions}</select>
-                </div>
-                <div class="calendar-grid">
-                    <div class="calendar-day-label">S</div>
-                    <div class="calendar-day-label">M</div>
-                    <div class="calendar-day-label">T</div>
-                    <div class="calendar-day-label">W</div>
-                    <div class="calendar-day-label">T</div>
-                    <div class="calendar-day-label">F</div>
-                    <div class="calendar-day-label">S</div>
-        `;
-
-        const firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay();
-        const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-
-        for (let i = 0; i < firstDay; i++) {
-            html += `<div class="calendar-day disabled"></div>`;
-        }
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateObj = new Date(currentCalYear, currentCalMonth, d);
-            const dayOfWeek = dateObj.getDay();
-            const isTarget = dayOfWeek === targetDay;
-            const isPast = dateObj < now;
-
-            if (isTarget && !isPast) {
-                const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                const isSelected = document.getElementById('selected-date').value === dateStr;
-                html += `<div class="calendar-day available ${isSelected ? 'selected' : ''}" data-date="${dateStr}">${d}</div>`;
-            } else {
-                html += `<div class="calendar-day disabled">${d}</div>`;
-            }
-        }
-
-        html += `</div></div>`;
-        wrapper.innerHTML = html;
-
-        // Listeners for selects
-        document.getElementById('cal-month-select').onchange = (e) => {
-            currentCalMonth = parseInt(e.target.value);
-            renderCalendar();
-        };
-        document.getElementById('cal-year-select').onchange = (e) => {
-            currentCalYear = parseInt(e.target.value);
-            renderCalendar();
-        };
-
-        wrapper.querySelectorAll('.calendar-day.available').forEach(day => {
-            day.onclick = () => {
-                wrapper.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
-                day.classList.add('selected');
-                document.getElementById('selected-date').value = day.dataset.date;
-                modal.querySelector('#step-2 .next-step').disabled = false;
-            };
-        });
-    }
-
-    // Form Validation 
-    function validateStep(step) {
-        if (step === 3) {
-            const name = document.getElementById('guest-name').value;
-            const email = document.getElementById('guest-email').value;
-            const whatsapp = document.getElementById('guest-whatsapp').value;
-            if (!name || !email || !whatsapp) {
-                alert('Please complete all guest details including WhatsApp.');
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // ===== PROMO CODE SYSTEM =====
-    const SUPABASE_URL = 'https://csltowtyzjknulqmgnku.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzbHRvd3R5emprbnVscW1nbmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODAyNzgsImV4cCI6MjA4NTk1NjI3OH0.0ryyMBhmHcBicdE1Cegn_6roISv9paOX0xSFDaZwLvU';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Promo state
-    let appliedPromo = null; // { code, discount_type, discount_value }
-
-    // Update Step 4 Summary
-    function updateSummary() {
-        const date = document.getElementById('selected-date').value || 'TBD';
-        const dayInput = document.querySelector('input[name="event-day"]:checked');
-        const dayValue = dayInput ? dayInput.value : '';
-        const blocks = document.querySelectorAll('.guest-block');
-        let subtotal = 0;
-        let guestSummaryParts = [];
-
-        blocks.forEach(block => {
-            const gender = block.querySelector('.guest-gender-select').value;
-            const count = parseInt(block.querySelector('.guest-count-input').value) || 0;
-            if (count > 0) {
-                subtotal += BCC_UTILS.calculatePrice(gender, count, dayValue);
-                guestSummaryParts.push(`${count}x ${gender.charAt(0).toUpperCase() + gender.slice(1)}`);
-            }
-        });
-
-        document.getElementById('summary-event').textContent = date;
-        document.getElementById('summary-guests').textContent = guestSummaryParts.join(', ');
-        document.getElementById('summary-subtotal').textContent = BCC_UTILS.formatCurrency(subtotal);
-
-        // Calculate discount
-        let discountAmount = 0;
-        const discountRow = document.getElementById('promo-discount-row');
-        const discountAmountEl = document.getElementById('promo-discount-amount');
-
-        if (appliedPromo) {
-            if (appliedPromo.discount_type === 'percentage') {
-                discountAmount = Math.round(subtotal * (appliedPromo.discount_value / 100));
-            } else {
-                discountAmount = Math.min(appliedPromo.discount_value, subtotal);
-            }
-            discountRow.classList.add('visible');
-            discountAmountEl.textContent = `-${BCC_UTILS.formatCurrency(discountAmount)}`;
-        } else {
-            discountRow.classList.remove('visible');
-        }
-
-        const finalTotal = Math.max(0, subtotal - discountAmount);
-        document.getElementById('summary-total').textContent = BCC_UTILS.formatCurrency(finalTotal);
-    }
-
-    // Promo Code Apply Logic
-    const promoInput = document.getElementById('promo-code-input');
-    const applyBtn = document.getElementById('apply-promo-btn');
-    const promoFeedback = document.getElementById('promo-feedback');
-
-    if (applyBtn) {
-        applyBtn.addEventListener('click', async () => {
-            const code = promoInput.value.trim().toUpperCase();
-            if (!code) {
-                showPromoFeedback('Please enter a promo code', 'error');
-                promoInput.classList.add('error');
-                setTimeout(() => promoInput.classList.remove('error'), 600);
-                return;
-            }
-
-            // Loading state
-            applyBtn.classList.add('loading');
-            applyBtn.disabled = true;
-            promoInput.classList.remove('success', 'error');
-            promoFeedback.textContent = '';
-            promoFeedback.className = 'promo-feedback';
-
-            try {
-                const { data, error } = await supabase
-                    .from('promo_codes')
-                    .select('code, discount_type, discount_value')
-                    .eq('code', code)
-                    .eq('is_active', true)
-                    .single();
-
-                if (error || !data) {
-                    showPromoFeedback('Invalid or expired code', 'error');
-                    promoInput.classList.add('error');
-                    setTimeout(() => promoInput.classList.remove('error'), 600);
-                } else {
-                    // Apply the promo
-                    appliedPromo = data;
-                    const label = data.discount_type === 'percentage'
-                        ? `${data.discount_value}% off`
-                        : `${BCC_UTILS.formatCurrency(data.discount_value)} off`;
-                    showPromoFeedback(`"${data.code}" applied — ${label}`, 'success');
-                    promoInput.classList.add('success');
-                    promoInput.disabled = true;
-                    applyBtn.style.display = 'none';
-
-                    // Show remove button
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'promo-remove-btn';
-                    removeBtn.textContent = 'Remove';
-                    removeBtn.id = 'remove-promo-btn';
-                    removeBtn.addEventListener('click', () => {
-                        appliedPromo = null;
-                        promoInput.value = '';
-                        promoInput.disabled = false;
-                        promoInput.classList.remove('success');
-                        applyBtn.style.display = '';
-                        removeBtn.remove();
-                        promoFeedback.textContent = '';
-                        promoFeedback.className = 'promo-feedback';
-                        updateSummary();
-                    });
-                    promoInput.parentElement.appendChild(removeBtn);
-
-                    updateSummary();
-                }
-            } catch (err) {
-                console.error('Promo code verification failed:', err);
-                showPromoFeedback('Network error — try again', 'error');
-            } finally {
-                applyBtn.classList.remove('loading');
-                applyBtn.disabled = false;
-            }
-        });
-
-        // Enter key to apply
-        promoInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                applyBtn.click();
-            }
-        });
-    }
-
-    function showPromoFeedback(message, type) {
-        promoFeedback.textContent = message;
-        promoFeedback.className = `promo-feedback ${type}`;
-    }
-
-    // Step 3: Guest Blocks Logic
-    function updateGuestBlockPrices() {
-        const dayInput = document.querySelector('input[name="event-day"]:checked');
-        const isThursday = dayInput && dayInput.value === '4';
-        const malePrice = isThursday ? '1,200' : '1,500';
-        const femalePrice = isThursday ? '1,000' : '1,200';
-
-        const selects = document.querySelectorAll('.guest-gender-select');
-        selects.forEach(select => {
-            const options = select.querySelectorAll('option');
-            options.forEach(opt => {
-                if (opt.value === 'male') opt.textContent = `Male (฿${malePrice})`;
-                if (opt.value === 'female') opt.textContent = `Female (฿${femalePrice})`;
-            });
-        });
-    }
-
-    function initGuestBlocks() {
-        const container = document.getElementById('guest-blocks-container');
-        const addBtn = document.getElementById('add-guest-btn');
-        const whatsappInput = document.getElementById('guest-whatsapp');
-
-        if (container.children.length === 0) {
-            addGuestBlock('female', 1); // Start with 1 Female by default
-        } else {
-            updateGuestBlockPrices();
-        }
-
-        addBtn.onclick = () => addGuestBlock('male', 1);
-
-        // WhatsApp auto-format (allows + for international)
-        whatsappInput.oninput = (e) => {
-            e.target.value = e.target.value.replace(/[^0-9\s-+\(\)]/g, '');
-        };
-    }
-
-    function addGuestBlock(gender = 'male', count = 1) {
-        const container = document.getElementById('guest-blocks-container');
-        const dayInput = document.querySelector('input[name="event-day"]:checked');
-        const isThursday = dayInput && dayInput.value === '4';
-        const malePrice = isThursday ? '1,200' : '1,500';
-        const femalePrice = isThursday ? '1,000' : '1,200';
-
-        const block = document.createElement('div');
-        block.className = 'guest-block';
-        block.innerHTML = `
-            <select class="guest-gender-select" style="flex: 2; padding: var(--space-sm); background: var(--color-dark-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
-                <option value="male" ${gender === 'male' ? 'selected' : ''}>Male (฿${malePrice})</option>
-                <option value="female" ${gender === 'female' ? 'selected' : ''}>Female (฿${femalePrice})</option>
-            </select>
-            <input type="number" class="guest-count-input" value="${count}" min="1" max="10" style="width: 60px; padding: var(--space-sm); background: var(--color-dark-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
-            <button type="button" class="remove-guest-btn">&times;</button>
-        `;
-
-        block.querySelector('.remove-guest-btn').onclick = () => {
-            if (container.children.length > 1) block.remove();
-        };
-
-        container.appendChild(block);
-    }
-
-    // Payment Button Logic — Real Stripe Checkout Integration
-    const payBtn = document.getElementById('confirm-payment');
-    if (payBtn) {
-        payBtn.onclick = async () => {
-            // ——— Validate required fields ———
-            const name = document.getElementById('guest-name').value.trim();
-            const email = document.getElementById('guest-email').value.trim();
-            const whatsapp = document.getElementById('guest-whatsapp').value.trim();
-            const eventDate = document.getElementById('selected-date').value;
-
-            if (!name || !email || !whatsapp) {
-                alert('Please fill in your Name, Email, and WhatsApp number.');
-                return;
-            }
-            // Validate email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert('Please enter a valid email address.');
-                return;
-            }
-            if (!eventDate) {
-                alert('Please select an event date first.');
-                return;
-            }
-
-            // ——— Collect pax breakdown ———
-            const blocks = document.querySelectorAll('.guest-block');
-            let maleCount = 0;
-            let femaleCount = 0;
-
-            blocks.forEach(block => {
-                const gender = block.querySelector('.guest-gender-select').value;
-                const count = parseInt(block.querySelector('.guest-count-input').value) || 0;
-                if (gender === 'male') maleCount += count;
-                else femaleCount += count;
-            });
-
-            if (maleCount + femaleCount === 0) {
-                alert('Please add at least 1 guest.');
-                return;
-            }
-
-            // ——— Show loading state ———
-            payBtn.textContent = 'CREATING CHECKOUT...';
-            payBtn.disabled = true;
-            payBtn.style.opacity = '0.7';
-
-            // ——— Build payload ———
-            const selectedDay = document.querySelector('input[name="event-day"]:checked')?.value || null;
-            const payload = {
-                guest: {
-                    first_name: name,
-                    email: email,
-                    phone: whatsapp
-                },
-                event_date: eventDate,
-                event_day: selectedDay,
-                pax: {
-                    male: maleCount,
-                    female: femaleCount
-                },
-                promo_code: appliedPromo ? appliedPromo.code : null,
-                source_channel: TRACKED_SOURCE || null  // CRM: captured from ?source= URL param
-            };
-
-            console.log('📋 Checkout payload:', payload);
-
-            try {
-                const response = await fetch('/api/create-checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Checkout creation failed');
-                }
-
-                console.log('✅ Redirecting to Stripe Checkout:', data.url);
-
-                // Redirect to Stripe Checkout
-                window.location.href = data.url;
-
-            } catch (err) {
-                console.error('❌ Checkout error:', err);
-                alert(`Booking failed: ${err.message}\n\nPlease try again.`);
-                payBtn.textContent = 'PAY NOW via Stripe';
-                payBtn.disabled = false;
-                payBtn.style.opacity = '1';
-            }
-        };
+    if (openBtn) {
+        openBtn.onclick = () => window.location.href = '/book';
     }
 }
 
@@ -1474,7 +1016,7 @@ function initChatAssistant() {
         if (lower.match(/(yes|yeah|yep|sure|send it|let's go|let's do it|book|ready|i'm in|count me in|go for it|absolutely|definitely|do it|please|link)/)) {
             session.bookingLinkSent = true;
             session.stage = 'post_booking';
-            return "Here you go 👇\n\n<a href='#' onclick=\"document.getElementById('booking-modal').classList.add('active'); document.getElementById('chat-panel').style.display='none'; return false;\" style='color: var(--color-primary); text-decoration: underline; font-weight: 600;'>→ Book Your Spot Now</a>\n\nThe form takes about 60 seconds. Pick your date, add your details, and you're in. Payment is via Stripe — secure and instant.\n\nOnce confirmed, you'll get the meet-up details. Any questions before you book?";
+            return "Here you go 👇\n\n<a href='#' onclick=\"window.location.href='/book'; return false;\" style='color: var(--color-primary); text-decoration: underline; font-weight: 600;'>→ Book Your Spot Now</a>\n\nThe form takes about 60 seconds. Pick your date, add your details, and you're in. Payment is via Stripe — secure and instant.\n\nOnce confirmed, you'll get the meet-up details. Any questions before you book?";
         }
 
         // Hesitation or new objection
@@ -1574,7 +1116,7 @@ function initChatAssistant() {
                 if (session.dateConfirmed && (session.dateConfirmed === 'this_friday' || session.dateConfirmed === 'this_saturday')) {
                     session.bookingLinkSent = true;
                     session.stage = 'post_booking';
-                    return "Let's get you in 👇\n\n<a href='#' onclick=\"document.getElementById('booking-modal').classList.add('active'); document.getElementById('chat-panel').style.display='none'; return false;\" style='color: var(--color-primary); text-decoration: underline; font-weight: 600;'>→ Book Your Spot Now</a>\n\nPick your date, add your details, and you're confirmed. Payment is via Stripe — secure and instant.";
+                    return "Let's get you in 👇\n\n<a href='#' onclick=\"window.location.href='/book'; return false;\" style='color: var(--color-primary); text-decoration: underline; font-weight: 600;'>→ Book Your Spot Now</a>\n\nPick your date, add your details, and you're confirmed. Payment is via Stripe — secure and instant.";
                 }
                 if (!session.dateConfirmed) {
                     session.stage = 'date_qualification';
@@ -1688,15 +1230,12 @@ function initScrollAnimations() {
 function initEventListeners() {
     // Universal Booking Trigger
     const bookingTriggers = document.querySelectorAll('#start-booking, .cta-open-booking');
-    const modal = document.getElementById('booking-modal');
 
-    if (modal) {
-        bookingTriggers.forEach(btn => {
-            btn.addEventListener('click', () => {
-                modal.classList.add('active');
-            });
+    bookingTriggers.forEach(btn => {
+        btn.addEventListener('click', () => {
+            window.location.href = '/book';
         });
-    }
+    });
 
     // Header scroll background effect
     window.addEventListener('scroll', () => {

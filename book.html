@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Experience | Bangkok Club Crawl</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Book your spot for the Bangkok Club Crawl. Direct, secure booking for Friday and Saturday nights. Curated venues, VIP entry, and dedicated hosts.">
+    <meta name="keywords" content="Book Bangkok Club Crawl, Nightlife Booking, Bangkok Events, Club Crawl Tickets">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/index.css">
+    
+    <style>
+        /* Standalone Booking Page Specific Styles */
+        body {
+            background-color: var(--color-dark-base);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .book-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4xl) var(--space-md);
+            background: radial-gradient(circle at center, rgba(255, 45, 149, 0.05) 0%, transparent 70%);
+        }
+
+        .booking-card {
+            max-width: 500px;
+            width: 100%;
+            background-color: var(--color-dark-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-elevated);
+        }
+
+        .book-header {
+            text-align: center;
+            margin-bottom: var(--space-2xl);
+        }
+
+        .book-logo {
+            width: 80px;
+            height: auto;
+            margin: 0 auto var(--space-md);
+        }
+
+        .book-title {
+            font-size: var(--text-h3);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-xs);
+        }
+
+        .book-subtitle {
+            font-size: var(--text-small);
+            color: var(--color-gray-light);
+        }
+
+        /* Override wizard styles for standalone view */
+        #booking-wizard {
+            display: block !important;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+        .wizard-step:first-child {
+            display: block;
+        }
+
+        /* Remove modal-specific elements if any */
+        .modal-close {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .booking-card {
+                padding: var(--space-xl) var(--space-md);
+                border: none;
+                background: transparent;
+                box-shadow: none;
+            }
+            
+            .book-container {
+                padding-top: var(--space-2xl);
+            }
+        }
+    </style>
+
+    <!-- Vercel Web Analytics & Speed Insights -->
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+    <main class="book-container">
+        <div class="booking-card">
+            <header class="book-header">
+                <a href="/">
+                    <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Thailand" class="book-logo">
+                </a>
+                <h1 class="book-title">Secure Your <span class="text-gradient-pink">Spot</span></h1>
+                <p class="book-subtitle">Bangkok Nights. Done Right.</p>
+            </header>
+
+            <div id="booking-wizard">
+                <!-- Step 1: Day Selection -->
+                <div class="wizard-step" id="step-1">
+                    <div class="wizard-header">
+                        <span class="section-label">Step 1/4</span>
+                        <h3 class="wizard-title" style="margin-bottom: var(--space-lg);">Choose Your Night</h3>
+                    </div>
+                    <div class="date-selection" style="display: flex; flex-direction: column; gap: var(--space-md);">
+                        <label class="date-option" style="display: block; cursor: pointer;">
+                            <input type="radio" name="event-day" value="4" style="display: none;">
+                            <div class="date-card card" style="padding: var(--space-md); text-align: center;">
+                                <div style="font-weight: var(--weight-bold);">THURSDAY</div>
+                                <div style="font-size: var(--text-small); color: var(--color-gray-light);">9:00 PM – 12:30 AM</div>
+                            </div>
+                        </label>
+                        <label class="date-option" style="display: block; cursor: pointer;">
+                            <input type="radio" name="event-day" value="5" style="display: none;">
+                            <div class="date-card card" style="padding: var(--space-md); text-align: center;">
+                                <div style="font-weight: var(--weight-bold);">FRIDAY</div>
+                                <div style="font-size: var(--text-small); color: var(--color-gray-light);">9:30 PM – Late</div>
+                            </div>
+                        </label>
+                        <label class="date-option" style="display: block; cursor: pointer;">
+                            <input type="radio" name="event-day" value="6" style="display: none;">
+                            <div class="date-card card" style="padding: var(--space-md); text-align: center;">
+                                <div style="font-weight: var(--weight-bold);">SATURDAY</div>
+                                <div style="font-size: var(--text-small); color: var(--color-gray-light);">9:30 PM – Late</div>
+                            </div>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary next-step" style="width: 100%; margin-top: var(--space-xl);" disabled>NEXT →</button>
+                </div>
+
+                <!-- Step 2: Date Selection -->
+                <div class="wizard-step" id="step-2" style="display: none;">
+                    <div class="wizard-header">
+                        <span class="section-label">Step 2/4</span>
+                        <h3 class="wizard-title" style="margin-bottom: var(--space-lg);">Select Your Date</h3>
+                    </div>
+                    <div id="calendar-wrapper">
+                        <!-- Calendar will be injected here -->
+                    </div>
+                    <input type="hidden" id="selected-date" name="event-date">
+                    <div style="display: flex; gap: var(--space-md); margin-top: var(--space-xl);">
+                        <button class="btn prev-step" style="flex: 1; border: 1px solid var(--color-border);">BACK</button>
+                        <button class="btn btn-primary next-step" style="flex: 2;" disabled>CONFIRM DATE →</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Guest Details -->
+                <div class="wizard-step" id="step-3" style="display: none;">
+                    <div class="wizard-header">
+                        <span class="section-label">Step 3/4</span>
+                        <h3 class="wizard-title" style="margin-bottom: var(--space-lg);">Guest Details</h3>
+                    </div>
+                    <div class="form-grid" style="display: flex; flex-direction: column; gap: var(--space-md);">
+                        <input type="text" id="guest-name" placeholder="Full Name" class="form-input"
+                            style="width: 100%; padding: var(--space-md); background: var(--color-dark-base); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
+                        <input type="email" id="guest-email" placeholder="Email Address" class="form-input"
+                            style="width: 100%; padding: var(--space-md); background: var(--color-dark-base); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
+                        <div style="display: flex; flex-direction: column; gap: var(--space-xs);">
+                            <input type="tel" id="guest-whatsapp" placeholder="WhatsApp Number (e.g. +66 81 123 4567)" class="form-input"
+                                style="width: 100%; padding: var(--space-md); background: var(--color-dark-base); border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-white);">
+                            <div id="whatsapp-hint" style="font-size: 0.75rem; color: var(--color-gray-light); padding-left: 2px;">Include your country code (e.g. +1, +44, +66)</div>
+                        </div>
+
+                        <div id="guest-blocks-container" style="display: flex; flex-direction: column; gap: var(--space-sm);">
+                            <!-- Guest blocks will be added here -->
+                        </div>
+
+                        <button type="button" id="add-guest-btn"
+                            style="background: none; border: 1px dashed var(--color-primary); color: var(--color-primary); padding: var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-small); transition: var(--transition-base);">
+                            + ADD GUEST TYPE
+                        </button>
+                    </div>
+                    <div class="wizard-footer" style="display: flex; gap: var(--space-md); margin-top: var(--space-xl);">
+                        <button class="btn btn-outline prev-step" style="flex: 1;">BACK</button>
+                        <button class="btn btn-primary next-step" style="flex: 2;">NEXT →</button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Checkout Summary -->
+                <div class="wizard-step" id="step-4" style="display: none;">
+                    <div class="wizard-header">
+                        <span class="section-label">Step 4/4</span>
+                        <h3 class="wizard-title" style="margin-bottom: var(--space-lg);">Finalize Booking</h3>
+                    </div>
+                    <div class="booking-summary card" style="padding: var(--space-lg); margin-bottom: var(--space-xl);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                            <span style="color: var(--color-gray-light);">Event:</span>
+                            <span id="summary-event" style="font-weight: var(--weight-semibold);">Friday Night</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                            <span style="color: var(--color-gray-light);">Guests:</span>
+                            <span id="summary-guests" style="font-weight: var(--weight-semibold);">2x Female</span>
+                        </div>
+                        <div style="border-top: 1px solid var(--color-border); margin: var(--space-md) 0; padding-top: var(--space-md); display: flex; justify-content: space-between;">
+                            <span style="font-weight: var(--weight-bold);">Subtotal:</span>
+                            <span id="summary-subtotal" style="color: var(--color-white); font-weight: var(--weight-semibold);">฿2,400</span>
+                        </div>
+
+                        <!-- Promo Code Row -->
+                        <div id="promo-discount-row" style="margin-bottom: var(--space-sm); align-items: center;">
+                            <span style="color: var(--color-success); font-size: var(--text-small);">🎟️ Discount:</span>
+                            <span id="promo-discount-amount" style="color: var(--color-success); font-weight: var(--weight-semibold);">-฿0</span>
+                        </div>
+
+                        <!-- Promo Code Input -->
+                        <div class="promo-code-section">
+                            <div class="promo-label">
+                                <span class="promo-tag-icon">🏷️</span>
+                                <span>Apply Discount Code</span>
+                            </div>
+                            <div class="promo-input-row">
+                                <input type="text" id="promo-code-input" placeholder="Enter code" class="promo-input" maxlength="20" autocomplete="off">
+                                <button type="button" id="apply-promo-btn" class="promo-apply-btn">Apply</button>
+                            </div>
+                            <div id="promo-feedback" class="promo-feedback"></div>
+                        </div>
+
+                        <!-- Final Total -->
+                        <div style="border-top: 1px solid var(--color-border); margin: var(--space-md) 0; padding-top: var(--space-md); display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: var(--weight-bold); font-size: 1.1rem;">Total:</span>
+                            <span id="summary-total" style="color: var(--color-gold); font-weight: var(--weight-bold); font-size: 1.4rem;">฿2,400</span>
+                        </div>
+                    </div>
+                    <div class="wizard-footer" style="display: flex; gap: var(--space-md);">
+                        <button class="btn btn-outline prev-step" style="flex: 1;">BACK</button>
+                        <button class="btn btn-primary" id="confirm-payment" style="flex: 2;">CONFIRM & PAY</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer" style="padding: var(--space-2xl) 0;">
+        <div class="container">
+            <p class="footer-tagline" style="font-size: 1rem;">Bangkok Nights. <span class="text-gradient-pink">Done Right.</span></p>
+            <div class="footer-info" style="font-size: 0.6rem;">
+                SECURE BOOKING · OFFICIAL PARTNER · BANGKOK CLUB CRAWL
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/booking.js"></script>
+</body>
+
+</html>
