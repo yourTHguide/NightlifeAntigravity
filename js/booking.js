@@ -4,11 +4,15 @@
  */
 
 // ═══════════════════════════════════════════════════
-//  GLOBAL: URL Parameter Tracking
+//  GLOBAL: URL Parameter Tracking & Supabase Auth
 // ═══════════════════════════════════════════════════
 const URL_PARAMS = new URLSearchParams(window.location.search);
 const TRACKED_SOURCE = URL_PARAMS.get('source') || null;
-const TRACKED_NIGHT = URL_PARAMS.get('night') || null;
+const TRACKED_NIGHT = URL_PARAMS.get('night') || null; // Kept but now unused for Step 1 picking, can be used for logging
+
+const SUPABASE_URL = 'https://csltowtyzjknulqmgnku.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzbHRvd3R5emprbnVscW1nbmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODAyNzgsImV4cCI6MjA4NTk1NjI3OH0.0ryyMBhmHcBicdE1Cegn_6roISv9paOX0xSFDaZwLvU';
+let sbClient = null;
 
 // 🛡️ Security: XSS Prevention Helper
 function escHtml(str) {
@@ -18,33 +22,33 @@ function escHtml(str) {
     return d.innerHTML;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize immediately since the script is at the bottom of the body
+console.log('booking.js loaded! Initializing wizard...');
+if (window.supabase && window.supabase.createClient) {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase client initialized as sbClient');
+} else {
+    console.warn('Supabase JS not found in window');
+}
+
+try {
     initBookingWizard();
-});
+} catch (e) {
+    console.error('Error in initBookingWizard:', e);
+}
 
 // ═══════════════════════════════════════════════════
 //  🧙‍♂️ BOOKING WIZARD INITIALIZATION
 // ═══════════════════════════════════════════════════
 function initBookingWizard() {
+    console.log('initBookingWizard called');
     const wizardContainer = document.getElementById('booking-wizard');
-    if (!wizardContainer) return;
+    if (!wizardContainer) {
+        console.error('CRITICAL: #booking-wizard not found in DOM!');
+        return;
+    }
 
     console.log('Wizard initialized on standalone page.');
-
-    // Pre-select day if night parameter exists
-    if (TRACKED_NIGHT) {
-        const nightMap = { 'thursday': '4', 'friday': '5', 'saturday': '6' };
-        const val = nightMap[TRACKED_NIGHT.toLowerCase()];
-        if (val) {
-            const dayInput = wizardContainer.querySelector(`input[name="event-day"][value="${val}"]`);
-            if (dayInput) {
-                dayInput.checked = true;
-                // Enable next button on step 1
-                const nxt = wizardContainer.querySelector('#step-1 .next-step');
-                if (nxt) nxt.disabled = false;
-            }
-        }
-    }
 
     // Wizard Navigation State
     let currentStep = 1;
@@ -57,9 +61,8 @@ function initBookingWizard() {
             step.style.display = (index + 1 === stepNum) ? 'block' : 'none';
         });
         currentStep = stepNum;
-        if (stepNum === 2) renderCalendar();
-        if (stepNum === 3) initGuestBlocks();
-        if (stepNum === 4) updateSummary();
+        if (stepNum === 2) initGuestBlocks();
+        if (stepNum === 3) updateSummary();
 
         // Scroll to top of card on step change for mobile
         const card = document.querySelector('.booking-card');
@@ -80,23 +83,30 @@ function initBookingWizard() {
         };
     });
 
-    // Step 1: Day selection enablement
-    const dayOptions = wizardContainer.querySelectorAll('input[name="event-day"]');
-    dayOptions.forEach(opt => {
-        opt.onchange = () => {
-            wizardContainer.querySelector('#step-1 .next-step').disabled = false;
-        };
-    });
-
-    // 📅 Step 2: Calendar System
+    // 📅 Step 1: Calendar System (Fetched from server API)
     let currentCalMonth = new Date().getMonth();
     let currentCalYear = new Date().getFullYear();
+    let availableDates = [];
+
+    async function fetchAvailableDates() {
+        const wrapper = document.getElementById('calendar-wrapper');
+        wrapper.innerHTML = '<div style="text-align: center; padding: 2rem; color: #FF2D95;">Loading available dates...</div>';
+
+        try {
+            const res = await fetch('/api/available-dates');
+            if (!res.ok) throw new Error('Server returned ' + res.status);
+            const json = await res.json();
+            availableDates = json.dates || [];
+            console.log('📅 Available dates loaded:', availableDates.length);
+            renderCalendar();
+        } catch (err) {
+            console.error('Failed to fetch available dates:', err);
+            wrapper.innerHTML = '<div style="text-align: center; padding: 2rem; color: #fb7185;">Failed to load calendar. Please refresh.</div>';
+        }
+    }
 
     function renderCalendar() {
         const wrapper = document.getElementById('calendar-wrapper');
-        const dayInput = wizardContainer.querySelector('input[name="event-day"]:checked');
-        if (!dayInput) return;
-        const targetDay = parseInt(dayInput.value);
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         let monthOptions = monthNames.map((m, i) => `<option value="${i}" ${i === currentCalMonth ? 'selected' : ''}>${m}</option>`).join('');
@@ -113,22 +123,30 @@ function initBookingWizard() {
 
         const firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay();
         const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
+
+        // Use user's local timezone for matching 'isPast' strictly by visual date
+        const todayObj = new Date();
+        todayObj.setHours(0, 0, 0, 0);
 
         for (let i = 0; i < firstDay; i++) {
             html += `<div class="calendar-day disabled"></div>`;
         }
         for (let d = 1; d <= daysInMonth; d++) {
-            const dateObj = new Date(currentCalYear, currentCalMonth, d);
-            const dayOfWeek = dateObj.getDay();
-            const isTarget = dayOfWeek === targetDay;
-            const isPast = dateObj < now;
+            // Reconstruct ISO date to match Supabase response format (YYYY-MM-DD)
+            const mm = String(currentCalMonth + 1).padStart(2, '0');
+            const dd = String(d).padStart(2, '0');
+            const dateStrIso = `${currentCalYear}-${mm}-${dd}`;
 
-            if (isTarget && !isPast) {
+            const dateObj = new Date(currentCalYear, currentCalMonth, d);
+            const isPast = dateObj < todayObj;
+
+            // Check if explicitly open
+            const isAvailable = availableDates.includes(dateStrIso) && !isPast;
+
+            if (isAvailable) {
                 const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                const isSelected = document.getElementById('selected-date').value === dateStr;
-                html += `<div class="calendar-day available ${isSelected ? 'selected' : ''}" data-date="${dateStr}">${d}</div>`;
+                const isSelected = document.getElementById('selected-date').value === dateStrIso;
+                html += `<div class="calendar-day available ${isSelected ? 'selected' : ''}" data-date="${dateStrIso}" data-date-gb="${dateStr}">${d}</div>`;
             } else {
                 html += `<div class="calendar-day disabled">${d}</div>`;
             }
@@ -150,12 +168,19 @@ function initBookingWizard() {
                 wrapper.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
                 day.classList.add('selected');
                 document.getElementById('selected-date').value = day.dataset.date;
-                wizardContainer.querySelector('#step-2 .next-step').disabled = false;
+                wizardContainer.querySelector('#step-1 .next-step').disabled = false;
+
+                // When picking a date, if user goes back, make sure pricing recalculates
+                updateGuestBlockPrices();
             };
         });
     }
 
-    // 👥 Step 3: Guest Blocks Logic
+    // Initialize: show Step 1 and fetch dates
+    showStep(1);
+    fetchAvailableDates();
+
+    // 👥 Step 2: Guest Blocks Logic
     function initGuestBlocks() {
         const container = document.getElementById('guest-blocks-container');
         const addBtn = document.getElementById('add-guest-btn');
@@ -167,16 +192,28 @@ function initBookingWizard() {
             updateGuestBlockPrices();
         }
 
-        addBtn.onclick = () => addGuestBlock('male', 1);
-        whatsappInput.oninput = (e) => {
-            e.target.value = e.target.value.replace(/[^0-9\s-+\(\)]/g, '');
-        };
+        // Only attach onclick if not already attached
+        if (!addBtn.hasAttribute('data-bound')) {
+            addBtn.onclick = () => addGuestBlock('male', 1);
+            whatsappInput.oninput = (e) => {
+                e.target.value = e.target.value.replace(/[^0-9\s-+\(\)]/g, '');
+            };
+            addBtn.setAttribute('data-bound', 'true');
+        }
+    }
+
+    function isThursdaySelected() {
+        const selectedDate = document.getElementById('selected-date').value;
+        if (!selectedDate) return false;
+        try {
+            const dateObj = new Date(selectedDate);
+            return dateObj.getDay() === 4; // 0 = Sun ... 4 = Thu
+        } catch { return false; }
     }
 
     function addGuestBlock(gender = 'male', count = 1) {
         const container = document.getElementById('guest-blocks-container');
-        const dayInput = wizardContainer.querySelector('input[name="event-day"]:checked');
-        const isThursday = dayInput && dayInput.value === '4';
+        const isThursday = isThursdaySelected();
         const malePrice = isThursday ? '1,200' : '1,500';
         const femalePrice = isThursday ? '1,000' : '1,200';
 
@@ -207,8 +244,7 @@ function initBookingWizard() {
     }
 
     function updateGuestBlockPrices() {
-        const dayInput = wizardContainer.querySelector('input[name="event-day"]:checked');
-        const isThursday = dayInput && dayInput.value === '4';
+        const isThursday = isThursdaySelected();
         const malePrice = isThursday ? '1,200' : '1,500';
         const femalePrice = isThursday ? '1,000' : '1,200';
 
@@ -222,18 +258,14 @@ function initBookingWizard() {
         });
     }
 
-    // 📋 Step 4: Summary & Promo
-    const SUPABASE_URL = 'https://csltowtyzjknulqmgnku.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzbHRvd3R5emprbnVscW1nbmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODAyNzgsImV4cCI6MjA4NTk1NjI3OH0.0ryyMBhmHcBicdE1Cegn_6roISv9paOX0xSFDaZwLvU';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+    // 📋 Step 3: Summary & Promo
     let appliedPromo = null;
 
     function updateSummary() {
         const dateInput = document.getElementById('selected-date');
-        const date = dateInput ? dateInput.value : 'TBD';
-        const dayInput = wizardContainer.querySelector('input[name="event-day"]:checked');
-        const dayValue = dayInput ? dayInput.value : '';
+        const selectedDateStrIso = dateInput ? dateInput.value : '';
+        const dateDisplay = selectedDateStrIso ? new Date(selectedDateStrIso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBD';
+
         const blocks = document.querySelectorAll('.guest-block');
         let subtotal = 0;
         let guestSummaryParts = [];
@@ -242,6 +274,14 @@ function initBookingWizard() {
             const gender = block.querySelector('.guest-gender-select').value;
             const count = parseInt(block.querySelector('.guest-count-input').value) || 0;
             if (count > 0) {
+                // Determine day value for calculatePrice function ('4' for thursday)
+                let dayValue = '5';
+                try {
+                    if (selectedDateStrIso && new Date(selectedDateStrIso).getDay() === 4) {
+                        dayValue = '4';
+                    }
+                } catch { }
+
                 subtotal += BCC_UTILS.calculatePrice(gender, count, dayValue);
                 guestSummaryParts.push(`${count}x ${gender.charAt(0).toUpperCase() + gender.slice(1)}`);
             }
@@ -251,7 +291,7 @@ function initBookingWizard() {
         const summaryGuests = document.getElementById('summary-guests');
         const summarySubtotal = document.getElementById('summary-subtotal');
 
-        if (summaryEvent) summaryEvent.textContent = date;
+        if (summaryEvent) summaryEvent.textContent = dateDisplay;
         if (summaryGuests) summaryGuests.textContent = guestSummaryParts.join(', ');
         if (summarySubtotal) summarySubtotal.textContent = BCC_UTILS.formatCurrency(subtotal);
 
@@ -282,7 +322,7 @@ function initBookingWizard() {
     const applyBtn = document.getElementById('apply-promo-btn');
     const promoFeedback = document.getElementById('promo-feedback');
 
-    if (applyBtn) {
+    if (applyBtn && !applyBtn.hasAttribute('data-bound')) {
         applyBtn.addEventListener('click', async () => {
             const code = promoInput.value.trim().toUpperCase();
             if (!code) return;
@@ -291,7 +331,7 @@ function initBookingWizard() {
             applyBtn.disabled = true;
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await sbClient
                     .from('promo_codes')
                     .select('code, discount_type, discount_value')
                     .eq('code', code)
@@ -317,11 +357,12 @@ function initBookingWizard() {
                 applyBtn.disabled = false;
             }
         });
+        applyBtn.setAttribute('data-bound', 'true');
     }
 
-    // 🔐 Step 4: Final Checkout
+    // 🔐 Final Checkout
     const payBtn = document.getElementById('confirm-payment');
-    if (payBtn) {
+    if (payBtn && !payBtn.hasAttribute('data-bound')) {
         payBtn.onclick = async () => {
             const name = document.getElementById('guest-name').value.trim();
             const email = document.getElementById('guest-email').value.trim();
@@ -336,7 +377,10 @@ function initBookingWizard() {
             payBtn.textContent = 'CREATING CHECKOUT...';
             payBtn.disabled = true;
 
-            const selectedDay = wizardContainer.querySelector('input[name="event-day"]:checked')?.value || null;
+            let selectedDay = '5';
+            try {
+                selectedDay = new Date(eventDate).getDay() === 4 ? '4' : '5';
+            } catch { }
 
             // PAX breakdown
             const blocks = document.querySelectorAll('.guest-block');
@@ -378,11 +422,12 @@ function initBookingWizard() {
                 payBtn.disabled = false;
             }
         };
+        payBtn.setAttribute('data-bound', 'true');
     }
 
     // Validation
     function validateStep(step) {
-        if (step === 3) {
+        if (step === 2) { // Step 2 is now Guest Details
             const name = document.getElementById('guest-name').value;
             const email = document.getElementById('guest-email').value;
             const whatsapp = document.getElementById('guest-whatsapp').value;

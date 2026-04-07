@@ -18,6 +18,10 @@
             "use": "@vercel/static"
         },
         {
+            "src": "admin-v2.html",
+            "use": "@vercel/static"
+        },
+        {
             "src": "book.html",
             "use": "@vercel/static"
         },
@@ -58,6 +62,10 @@
         {
             "src": "/dashboard(.html)?",
             "dest": "/dashboard.html"
+        },
+        {
+            "src": "/admin-v2(.html)?",
+            "dest": "/admin-v2.html"
         },
         {
             "src": "/book(.html)?",

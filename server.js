@@ -23,7 +23,9 @@ const rateLimit = require('express-rate-limit');
 
 
 // ——— Config ———
+console.log('💳 Initializing Stripe...');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+console.log('🔗 Initializing Supabase...');
 const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -236,11 +238,42 @@ const app = express();
 // ——— Middleware ———
 // Stripe webhook needs raw body for signature verification
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }));
+console.log('📦 Middlewares Loading...');
 app.use(express.json());
 app.use(cors());
 
-// Serve static files (the landing page)
-app.use(express.static(path.join(__dirname)));
+// ——— Extensionless URL Middleware ———
+// Matches the routing logic in vercel.json for local development
+app.use((req, res, next) => {
+    if (req.path.endsWith('/') || req.path.includes('.')) {
+        return next();
+    }
+
+    const possiblePaths = [
+        path.join(__dirname, `${req.path}.html`),
+        path.join(__dirname, req.path, 'index.html'),
+        path.join(__dirname, req.path, 'main.html')
+    ];
+
+    for (const p of possiblePaths) {
+        if (require('fs').existsSync(p)) {
+            return res.sendFile(p);
+        }
+    }
+    next();
+});
+
+// Serve static files (no caching in dev)
+app.use(express.static(path.join(__dirname), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, path) => {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+    }
+}));
 
 // ═══════════════════════════════════════════════════
 //  POST /api/create-checkout
@@ -393,46 +426,23 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
 
         console.log(`📋 Booking created: ${booking.id} | Guest: ${guestId} | Total: ฿${totalAmount}`);
 
-        // ——— 6. Build Stripe Checkout Line Items (Thursday vs Fri/Sat routing) ———
-        const malePriceId = isThursday ? PRICES.thursday_male : PRICES.male;
-        const femalePriceId = isThursday ? PRICES.thursday_female : PRICES.female;
-
-        const lineItems = [];
-        if (maleCount > 0) {
-            lineItems.push({
-                price: malePriceId,
-                quantity: maleCount
-            });
-        }
-        if (femaleCount > 0) {
-            lineItems.push({
-                price: femalePriceId,
-                quantity: femaleCount
-            });
-        }
-
-        // ——— 7. Handle Discount via Stripe Coupon ———
-        // NOTE: THB uses satang (1 baht = 100 satang), so multiply by 100
-        let stripeCouponId = null;
-        if (discountAmount > 0 && validatedPromoCode) {
-            // Create a one-time Stripe coupon for this specific discount
-            const coupon = await stripe.coupons.create({
-                amount_off: discountAmount * 100, // Convert baht → satang
+        // ——— 6. Build Stripe Checkout Line Items ———
+        // Simplified: using a single lump-sum based on totalAmount (including promo)
+        const lineItems = [{
+            price_data: {
                 currency: 'thb',
-                duration: 'once',
-                name: `Promo: ${validatedPromoCode}`,
-                metadata: {
-                    booking_id: booking.id,
-                    original_code: validatedPromoCode
+                unit_amount: Math.round(totalAmount * 100), // Satang (100 = 1 THB)
+                product_data: {
+                    name: 'Bangkok Club Crawl Ticket',
+                    description: `${totalPax} pax (Event: ${event_date})`
                 }
-            });
-            stripeCouponId = coupon.id;
-        }
+            },
+            quantity: 1
+        }];
 
-        // ——— 8. Create Stripe Checkout Session ———
+        // ——— 7. Stripe Checkout Session Config ———
         const sessionConfig = {
             mode: 'payment',
-            // Let Stripe auto-select available payment methods for this account
             line_items: lineItems,
             customer_email: guest.email,
             metadata: {
@@ -449,10 +459,7 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
             cancel_url: `${CLIENT_URL}/index.html?booking=cancelled`
         };
 
-        // Apply discount if we created a coupon
-        if (stripeCouponId) {
-            sessionConfig.discounts = [{ coupon: stripeCouponId }];
-        }
+        console.log('💳 Sending Stripe Checkout Payload:', JSON.stringify(lineItems, null, 2));
 
         const session = await stripe.checkout.sessions.create(sessionConfig);
 
@@ -464,7 +471,7 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
 
         console.log(`✅ Stripe Checkout created: ${session.id}`);
 
-        // ——— 9. Return Checkout URL ———
+        // ——— 8. Return Checkout URL ———
         return res.json({
             url: session.url,
             booking_id: booking.id,
@@ -487,43 +494,39 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
 app.post('/api/stripe-webhook', async (req, res) => {
     let event;
 
-    // ——— 1. Verify Stripe Signature ———
+    // ——— 1. Verify Signature (Mandatory for Production) ———
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    if (webhookSecret && webhookSecret !== 'whsec_PLACEHOLDER') {
-        try {
-            event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-        } catch (err) {
-            console.error('⚠️ Webhook signature verification failed:', err.message);
-            return res.status(400).send(`Webhook Error: ${err.message}`);
-        }
-    } else {
-        // Webhook secret MUST be configured in production
-        console.error('❌ STRIPE_WEBHOOK_SECRET is missing. Webhook rejected.');
-        return res.status(400).send('Webhook configuration error');
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+        console.error('⚠️ Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-
 
     // ——— 2. Handle checkout.session.completed ———
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         const bookingId = session.metadata?.booking_id;
-        const guestId = session.metadata?.guest_id;
+        let guestId = session.metadata?.guest_id;
         const eventDate = session.metadata?.event_date;
         const promoCode = session.metadata?.promo_code;
         const sourceChannel = session.metadata?.source_channel;
 
+        console.log(`💳 Processing payment for Booking: ${bookingId} (Email: ${session.customer_details?.email || session.customer_email})`);
+
         if (!bookingId) {
-            console.error('❌ Webhook: No booking_id in session metadata');
-            return res.status(400).json({ error: 'Missing booking_id in metadata' });
+            console.error('❌ Webhook Error: No booking_id found in metadata.');
+            return res.status(400).json({ error: 'Missing booking_id' });
         }
 
-        console.log(`💰 Payment confirmed for booking: ${bookingId}`);
+        // Use Service Role client to bypass RLS for administrative updates
+        const adminSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
         try {
-            // ——— 3. UPDATE Booking → 'Paid' ———
-            const { error: updateError } = await supabase
+            // ——— 3. UPDATE Booking Status ———
+            const { error: updateError } = await adminSupabase
                 .from('bookings')
                 .update({
                     payment_status: 'Paid',
@@ -532,122 +535,149 @@ app.post('/api/stripe-webhook', async (req, res) => {
                 .eq('id', bookingId);
 
             if (updateError) {
-                console.error('❌ Failed to update booking:', updateError);
+                console.error(`❌ Database Error (Bookings): ${updateError.message}`);
             } else {
-                console.log(`✅ Booking ${bookingId} marked as Paid`);
+                console.log(`✅ Booking ${bookingId} marked as 'Paid'`);
             }
 
-            // ——— 4. UPDATE Guest Tags ———
-            if (guestId) {
-                // Fetch current guest data
-                const { data: guestData } = await supabase
-                    .from('guests')
-                    .select('tags, first_name, email, phone')
-                    .eq('id', guestId)
+            // ——— 4. Guest ID Discovery Fallback ———
+            if (!guestId) {
+                const { data: bData } = await adminSupabase
+                    .from('bookings')
+                    .select('guest_id')
+                    .eq('id', bookingId)
                     .single();
+                guestId = bData?.guest_id;
+            }
 
-                if (guestData) {
-                    let tags = guestData.tags || [];
+            // ——— 5. UPDATE Guest Tags ———
+            if (guestId) {
+                let guestData = null;
+                const formattedDate = new Date(eventDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
 
-                    // Remove 'Interested' tag
-                    tags = tags.filter(t => t !== 'Interested');
-
-                    // Add 'Booked — [Date]' tag
-                    const formattedDate = new Date(eventDate).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                    });
-                    const bookedTag = `Booked — ${formattedDate}`;
-                    if (!tags.includes(bookedTag)) {
-                        tags.push(bookedTag);
-                    }
-
-                    await supabase
+                try {
+                    const { data: fetchRes, error: guestFetchError } = await adminSupabase
                         .from('guests')
-                        .update({
-                            tags,
-                            ...(sourceChannel && sourceChannel !== 'web_direct' ? { source: sourceChannel } : {})
-                        })
-                        .eq('id', guestId);
-
-                    console.log(`🏷️ Guest ${guestId} tags updated: [${tags.join(', ')}]`);
-
-                    // ——— 5. Increment Promo Code Usage ———
-                    if (promoCode) {
-                        await supabase.rpc('increment_promo_usage', { code_value: promoCode })
-                            .then(() => console.log(`🎟️ Promo "${promoCode}" usage incremented`))
-                            .catch(async () => {
-                                // Fallback: manual increment if RPC doesn't exist
-                                const { data: promoData } = await supabase
-                                    .from('promo_codes')
-                                    .select('current_uses')
-                                    .eq('code', promoCode)
-                                    .single();
-                                if (promoData) {
-                                    await supabase
-                                        .from('promo_codes')
-                                        .update({ current_uses: promoData.current_uses + 1 })
-                                        .eq('code', promoCode);
-                                    console.log(`🎟️ Promo "${promoCode}" usage incremented (fallback)`);
-                                }
-                            });
-                    }
-
-                    // ——— 6. Fetch booking details for email ———
-                    const { data: bookingData } = await supabase
-                        .from('bookings')
-                        .select('quantity, pax_breakdown, total_price, discount_code, discount_amount, event_date')
-                        .eq('id', bookingId)
+                        .select('tags, first_name, email, phone')
+                        .eq('id', guestId)
                         .single();
 
-                    // ——— 7A. Send GUEST CONFIRMATION EMAIL ———
-                    if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-                        const confirmationHTML = buildGuestConfirmationHTML({
-                            firstName: guestData.first_name,
-                            eventDate: formattedDate,
-                            pax: bookingData?.quantity || 0,
-                            totalPaid: bookingData?.total_price || 0,
-                            bookingId: bookingId
-                        });
+                    if (guestFetchError) throw new Error(guestFetchError.message);
+                    guestData = fetchRes;
 
-                        await sendEmail({
-                            to: guestData.email,
-                            subject: `Booking Confirmed! Bangkok Club Crawl — ${formattedDate} 🎉`,
-                            html: confirmationHTML,
-                            text: `Hey ${guestData.first_name}! Your Bangkok Club Crawl booking for ${formattedDate} (${bookingData?.quantity || 0} pax) is confirmed. Total paid: ฿${(bookingData?.total_price || 0).toLocaleString()}. You'll receive WhatsApp details on the day by 7 PM.`
-                        });
+                    if (guestData) {
+                        let tags = guestData.tags || [];
+                        tags = tags.filter(t => t.toLowerCase() !== 'interested');
+                        const bookedTag = `Booked — ${formattedDate}`;
 
-                        // ——— 7B. Send ADMIN NOTIFICATION EMAIL ———
-                        const adminText = buildAdminNotificationText({
-                            firstName: guestData.first_name,
-                            email: guestData.email,
-                            phone: guestData.phone,
-                            eventDate: formattedDate,
-                            pax: bookingData?.quantity || 0,
-                            paxBreakdown: bookingData?.pax_breakdown,
-                            totalPaid: bookingData?.total_price || 0,
-                            discountCode: bookingData?.discount_code,
-                            discountAmount: bookingData?.discount_amount || 0,
-                            bookingId: bookingId,
-                            stripeSessionId: session.id
-                        });
+                        if (!tags.includes(bookedTag)) {
+                            tags.push(bookedTag);
+                        }
 
-                        await sendEmail({
-                            to: ADMIN_EMAIL,
-                            subject: `New Booking: ${guestData.first_name} for ${formattedDate} — ${bookingData?.quantity || 0} pax`,
-                            text: adminText
-                        });
-                    } else {
-                        console.log('⏭️ Email credentials not configured — skipping email notifications');
+                        const { error: tagUpdateError } = await adminSupabase
+                            .from('guests')
+                            .update({
+                                tags,
+                                ...(sourceChannel && sourceChannel !== 'web_direct' ? { source: sourceChannel } : {})
+                            })
+                            .eq('id', guestId);
+
+                        if (tagUpdateError) throw new Error(tagUpdateError.message);
+                        console.log(`✅ Guest tags updated for: ${guestData.first_name}`);
                     }
+                } catch (guestErr) {
+                    console.error(`❌ CRM Update Error (Guest):`, guestErr.message);
+                }
+
+                // ——— 5. Increment Promo Code Usage ———
+                if (promoCode) {
+                    console.log(`🎟️ Processing Promo: ${promoCode}`);
+                    await adminSupabase.rpc('increment_promo_usage', { code_value: promoCode })
+                        .then(() => console.log(`✅ Promo "${promoCode}" usage incremented via RPC`))
+                        .catch(async (rpcErr) => {
+                            console.warn(`⚠️ RPC increment failed, trying manual fallback for promo: ${promoCode}`);
+                            // Fallback: manual increment if RPC doesn't exist
+                            const { data: promoData } = await adminSupabase
+                                .from('promo_codes')
+                                .select('current_uses')
+                                .eq('code', promoCode)
+                                .single();
+                            if (promoData) {
+                                await adminSupabase
+                                    .from('promo_codes')
+                                    .update({ current_uses: (promoData.current_uses || 0) + 1 })
+                                    .eq('code', promoCode);
+                                console.log(`✅ Promo "${promoCode}" usage incremented (manual fallback)`);
+                            }
+                        });
+                }
+
+                // ——— 6. Fetch booking details for email ———
+                const { data: bookingData, error: bookingFetchError } = await adminSupabase
+                    .from('bookings')
+                    .select('quantity, pax_breakdown, total_price, discount_code, discount_amount, event_date')
+                    .eq('id', bookingId)
+                    .single();
+
+                if (bookingFetchError) {
+                    console.error(`❌ Failed to fetch booking details for email:`, bookingFetchError);
+                }
+
+                // ——— 7A. Send GUEST CONFIRMATION EMAIL ———
+                if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+                    console.log(`📧 Preparing guest confirmation email for: ${guestData.email}`);
+                    const confirmationHTML = buildGuestConfirmationHTML({
+                        firstName: guestData.first_name,
+                        eventDate: formattedDate,
+                        pax: bookingData?.quantity || 0,
+                        totalPaid: bookingData?.total_price || 0,
+                        bookingId: bookingId
+                    });
+
+                    const emailOk = await sendEmail({
+                        to: guestData.email,
+                        subject: `Booking Confirmed! Bangkok Club Crawl — ${formattedDate} 🎉`,
+                        html: confirmationHTML,
+                        text: `Hey ${guestData.first_name}! Your Bangkok Club Crawl booking for ${formattedDate} (${bookingData?.quantity || 0} pax) is confirmed. Total paid: ฿${(bookingData?.total_price || 0).toLocaleString()}. You'll receive WhatsApp details on the day by 7 PM.`
+                    });
+                    console.log(emailOk ? `✅ Guest email sent` : `❌ Guest email FAILED`);
+
+                    // ——— 7B. Send ADMIN NOTIFICATION EMAIL ———
+                    console.log(`📧 Preparing admin notification email...`);
+                    const adminText = buildAdminNotificationText({
+                        firstName: guestData.first_name,
+                        email: guestData.email,
+                        phone: guestData.phone,
+                        eventDate: formattedDate,
+                        pax: bookingData?.quantity || 0,
+                        paxBreakdown: bookingData?.pax_breakdown,
+                        totalPaid: bookingData?.total_price || 0,
+                        discountCode: bookingData?.discount_code,
+                        discountAmount: bookingData?.discount_amount || 0,
+                        bookingId: bookingId,
+                        stripeSessionId: session.id
+                    });
+
+                    const adminEmailOk = await sendEmail({
+                        to: ADMIN_EMAIL,
+                        subject: `New Booking: ${guestData.first_name} for ${formattedDate} — ${bookingData?.quantity || 0} pax`,
+                        text: adminText
+                    });
+                    console.log(adminEmailOk ? `✅ Admin email sent` : `❌ Admin email FAILED`);
+                } else {
+                    console.warn('⏭️ Email credentials not configured — skipping email notifications');
                 }
             }
-
         } catch (err) {
-            console.error('❌ Webhook processing error:', err);
+            console.error('❌ CRITICAL Webhook processing error:', err);
             return res.status(500).json({ error: 'Webhook processing failed' });
         }
+    } else {
+        console.log(`ℹ️ Received unhandled event type: ${event.type}`);
     }
 
     // Always acknowledge receipt
@@ -818,7 +848,6 @@ app.post('/api/webhooks/bokun', async (req, res) => {
         const email = deepFind(body, ['email', 'Email', 'emailAddress', 'email_address', 'customerEmail', 'contactEmail']) || null;
         const rawPhone = deepFind(body, ['phone', 'phoneNumber', 'phone_number', 'PhoneNumber', 'mobile',
             'mobilePhone', 'mobile_phone', 'telephone', 'tel', 'contactPhone']) || null;
-        const nationality = deepFind(body, ['nationality', 'Nationality', 'country', 'countryCode', 'country_code']) || null;
 
         // ——— 5. Extract Event Date (aggressive deep search) ———
         // Bokun uses many different field names — search exhaustively
@@ -952,7 +981,6 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                 if (firstName) updateFields.first_name = firstName;
                 if (lastName) updateFields.last_name = lastName;
                 if (email) updateFields.email = email;
-                if (nationality) updateFields.nationality = nationality;
                 updateFields.ota_platform = 'bokun';
                 await supabase.from('guests').update(updateFields).eq('id', guestId);
                 console.log(`👤 Existing guest updated: ${guestId}`);
@@ -965,7 +993,6 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                         last_name: lastName,
                         email: email,
                         phone: normalizedPhone,
-                        nationality: nationality,
                         source: 'bokun',
                         ota_booking_id: bokunId,
                         ota_platform: 'bokun',
@@ -997,7 +1024,6 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                 if (firstName) updateFields.first_name = firstName;
                 if (lastName) updateFields.last_name = lastName;
                 if (email) updateFields.email = email;
-                if (nationality) updateFields.nationality = nationality;
                 updateFields.ota_platform = 'bokun';
                 await supabase.from('guests').update(updateFields).eq('id', guestId);
                 console.log(`👤 Existing OTA guest updated: ${guestId}`);
@@ -1010,7 +1036,6 @@ app.post('/api/webhooks/bokun', async (req, res) => {
                         last_name: lastName,
                         email: email,
                         phone: null,               // OTA Fallback: phone collected later
-                        nationality: nationality,
                         source: 'bokun',
                         ota_booking_id: bokunId,    // ← This IS the unique identifier
                         ota_platform: 'bokun',
@@ -1425,14 +1450,356 @@ app.get('/api/admin/events', adminAuth, async (req, res) => {
     }
 });
 
+// ═══ GET /api/available-dates (PUBLIC — no auth) ═══
+// Returns dates where is_open = true for the booking calendar
+app.get('/api/available-dates', async (req, res) => {
+    try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+            .from('events')
+            .select('event_date')
+            .eq('is_open', true)
+            .gte('event_date', todayStr)
+            .order('event_date', { ascending: true })
+            .limit(90);
+
+        if (error) throw error;
+
+        const dates = (data || []).map(e => e.event_date);
+        return res.json({ dates });
+    } catch (err) {
+        console.error('❌ Available dates error:', err);
+        return res.status(500).json({ error: 'Failed to load dates' });
+    }
+});
+
+// ═══ GET /api/admin/v2/events ═══
+app.get('/api/admin/v2/events', adminAuth, async (req, res) => {
+    try {
+        const { data: events, error } = await supabase
+            .from('events')
+            .select('event_date, is_open')
+            .gte('event_date', new Date().toISOString().split('T')[0])
+            .order('event_date', { ascending: true })
+            .limit(100);
+
+        if (error) throw error;
+
+        const datesMap = {};
+        (events || []).forEach(e => {
+            if (e.event_date) datesMap[e.event_date] = !!e.is_open;
+        });
+
+        const nextDays = [];
+        const now = new Date();
+        const bkkOffset = 7 * 60 * 60 * 1000;
+        const bkkNow = new Date(now.getTime() + bkkOffset);
+
+        for (let i = 0; i < 90; i++) {
+            const d = new Date(bkkNow.getTime() + i * 24 * 60 * 60 * 1000);
+            const ds = d.toISOString().split('T')[0];
+            nextDays.push({
+                event_date: ds,
+                is_open: datesMap[ds] !== undefined ? datesMap[ds] : true
+            });
+        }
+
+        return res.json({ dates: nextDays });
+    } catch (err) {
+        console.error('❌ Admin V2 events error:', err);
+        return res.status(500).json({ error: 'Failed to load dates' });
+    }
+});
+
+// ═══ POST /api/admin/v2/events/toggle ═══
+app.post('/api/admin/v2/events/toggle', adminAuth, async (req, res) => {
+    try {
+        const { event_date, is_open } = req.body;
+        if (!event_date) return res.status(400).json({ error: 'Date is required' });
+
+        console.log(`🔄 Toggle request: ${event_date} → ${is_open}`);
+
+        // Check if a row exists for this date
+        const { data, error: checkErr } = await supabase
+            .from('events')
+            .select('id')
+            .eq('event_date', event_date)
+            .maybeSingle();
+
+        if (checkErr) {
+            console.error('❌ Toggle check error:', checkErr);
+            throw checkErr;
+        }
+
+        if (data) {
+            // Row exists — update it
+            const { error: updErr } = await supabase
+                .from('events')
+                .update({ is_open, updated_at: new Date().toISOString() })
+                .eq('id', data.id);
+            if (updErr) {
+                console.error('❌ Toggle update error:', updErr);
+                throw updErr;
+            }
+            console.log(`✅ Updated ${event_date} → is_open: ${is_open}`);
+        } else {
+            // No row — insert a new one
+            const parts = event_date.split('-');
+            const d = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+            const dayOfWeek = d.getUTCDay();
+            let dayType = 'weekday';
+            if (dayOfWeek === 4) dayType = 'thursday';
+            if (dayOfWeek === 5) dayType = 'friday';
+            if (dayOfWeek === 6) dayType = 'saturday';
+
+            const { error: insErr } = await supabase
+                .from('events')
+                .insert({
+                    event_date,
+                    is_open,
+                    day_type: dayType,
+                    meetup_venue_name: 'TBD',
+                    event_status: 'Scheduled'
+                });
+            if (insErr) {
+                console.error('❌ Toggle insert error:', insErr);
+                throw insErr;
+            }
+            console.log(`✅ Inserted new event row for ${event_date} (${dayType}) → is_open: ${is_open}`);
+        }
+
+        return res.json({ success: true, event_date, is_open });
+    } catch (err) {
+        console.error('❌ Admin V2 events toggle error:', err);
+        return res.status(500).json({ error: 'Failed to update date' });
+    }
+});
+
+// ═══ GET /api/admin/v2/bookings ═══
+// Returns bookings with payment_status = 'Paid' and their pax details
+app.get('/api/admin/v2/bookings', adminAuth, async (req, res) => {
+    try {
+        const { data: rawBookings, error } = await supabase
+            .from('bookings')
+            .select(`
+                id, event_date, first_name, email, quantity, total_price, 
+                payment_status, created_at, pax_breakdown, whatsapp_number, 
+                guest_id, payment_method, total_amount_paid, special_notes
+            `)
+            .order('event_date', { ascending: false });
+
+        if (error) throw error;
+
+        // Apply case-insensitive filter on the backend for 'paid' and similar statuses
+        const validStatuses = ['paid', 'confirmed', 'completed', 'success', 'captured'];
+        const bookings = (rawBookings || []).filter(b => {
+            const status = String(b.payment_status || '').toLowerCase().trim();
+            // allow anything the user considers to be a matching state
+            return validStatuses.includes(status) || status === 'upcoming' || status === 'today';
+        });
+
+        // Enrich with guest tags safely
+        const guestIds = [...new Set(bookings.map(b => b.guest_id).filter(Boolean))];
+        if (guestIds.length > 0) {
+            const { data: guestsData } = await supabase
+                .from('guests')
+                .select('id, tags, last_name')
+                .in('id', guestIds);
+
+            const tagsMap = {};
+            const lnMap = {};
+            (guestsData || []).forEach(g => {
+                tagsMap[g.id] = g.tags || [];
+                lnMap[g.id] = g.last_name || '';
+            });
+
+            bookings.forEach(b => {
+                b.tags = tagsMap[b.guest_id] || [];
+                b.last_name = lnMap[b.guest_id] || '';
+            });
+        }
+
+        return res.json({ bookings });
+    } catch (err) {
+        console.error('❌ Admin V2 bookings error:', err);
+        return res.status(500).json({ error: 'Failed to load bookings' });
+    }
+});
+
+// ═══ PUT /api/admin/v2/bookings/:id ═══
+// Handles the full edit mode submissions from the CRM Name Cards
+app.put('/api/admin/v2/bookings/:id', adminAuth, async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        const {
+            first_name, last_name, whatsapp_number, email, tags,
+            event_date, event_status, quantity, pax_breakdown, created_at,
+            total_amount_paid, total_price, payment_method, special_notes
+        } = req.body;
+
+        const { data: booking, error: bErr } = await supabase
+            .from('bookings')
+            .select('guest_id')
+            .eq('id', bookingId)
+            .single();
+
+        if (bErr || !booking) throw new Error('Booking not found');
+
+        // Update Guest Table
+        if (booking.guest_id) {
+            const { error: gErr } = await supabase.from('guests')
+                .update({
+                    first_name,
+                    last_name,
+                    email,
+                    phone: whatsapp_number,
+                    tags: Array.isArray(tags) ? tags : []
+                })
+                .eq('id', booking.guest_id);
+            if (gErr) throw gErr;
+        }
+
+        // Map status logic
+        let pStatus = 'Paid';
+        if (event_status === 'Cancelled') pStatus = 'cancelled';
+        if (event_status === 'Completed') pStatus = 'completed';
+
+        const finalPrice = Number(total_amount_paid || total_price || 0);
+
+        // Update Booking Table
+        const { error: bUpdErr } = await supabase.from('bookings')
+            .update({
+                event_date,
+                payment_status: pStatus,
+                quantity: Number(quantity),
+                pax_breakdown,
+                created_at,
+                total_amount_paid: finalPrice,
+                total_price: finalPrice, // duplicate for legacy support
+                payment_method,
+                special_notes,
+                first_name,
+                email,
+                whatsapp_number // sync duplicate fields
+            })
+            .eq('id', bookingId);
+
+        if (bUpdErr) throw bUpdErr;
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Admin V2 Edit Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══ POST /api/admin/v2/bookings ═══
+// Manual entry logic: Split-insert with Guest check and Booking record
+app.post('/api/admin/v2/bookings', adminAuth, async (req, res) => {
+    try {
+        console.log('📬 Manual Entry Request Body:', JSON.stringify(req.body, null, 2));
+
+        const {
+            first_name, last_name, whatsapp_number, email, tags,
+            event_date, male, female, total_amount_paid, payment_method, notes, created_by
+        } = req.body;
+
+        if (!whatsapp_number) throw new Error('WhatsApp number is required.');
+
+        // Step 1: Query guests table by phone
+        let { data: guest, error: gFindErr } = await supabase
+            .from('guests')
+            .select('id')
+            .eq('phone', whatsapp_number.trim())
+            .maybeSingle();
+
+        let guestId = guest ? guest.id : null;
+
+        // Step 2: Create Guest if not exists
+        if (!guestId) {
+            console.log('👤 Creating new guest for:', whatsapp_number);
+            const { data: newGuest, error: gInsErr } = await supabase.from('guests')
+                .insert({
+                    first_name,
+                    last_name: last_name || '',
+                    email,
+                    phone: whatsapp_number.trim(),
+                    tags: Array.isArray(tags) ? tags : []
+                })
+                .select('id')
+                .single();
+
+            if (gInsErr) throw gInsErr;
+            guestId = newGuest.id;
+        }
+
+        // Step 3: Insert Booking record (Hardcode Paid status)
+        const quantity = Number(male || 0) + Number(female || 0);
+        const pax_breakdown = { male: Number(male || 0), female: Number(female || 0) };
+        const special_notes = `${notes || 'N/A'} - Created By: ${created_by || 'Admin'}`;
+
+        console.log('🎫 Inserting Booking with details:', { quantity, pax_breakdown, payment_method });
+
+        const { data: bookingData, error: bInsErr } = await supabase.from('bookings')
+            .insert({
+                guest_id: guestId,
+                first_name,
+                email,
+                whatsapp_number: whatsapp_number.trim(),
+                event_date,
+                payment_status: 'Paid',
+                quantity,
+                pax_breakdown,
+                total_amount_paid: Number(total_amount_paid),
+                total_price: Number(total_amount_paid), // sync legacy column
+                payment_method,
+                special_notes,
+                created_at: new Date().toISOString()
+            })
+            .select();
+
+        if (bInsErr) {
+            console.error('❌ Supabase Booking Insert Error:', bInsErr);
+            throw bInsErr;
+        }
+
+        console.log('✅ Booking created successfully:', bookingData?.[0]?.id);
+        res.json({ success: true, id: bookingData?.[0]?.id });
+    } catch (err) {
+        console.error('❌ Admin V2 Manual Entry Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══ DELETE /api/admin/v2/bookings/:id ═══
+// Removes a specific booking record from the database
+app.delete('/api/admin/v2/bookings/:id', adminAuth, async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        console.log('🗑️ Deleting booking:', bookingId);
+
+        const { error } = await supabase
+            .from('bookings')
+            .delete()
+            .eq('id', bookingId);
+
+        if (error) throw error;
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Admin V2 Delete Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ═══ GET /api/admin/guests ═══
 // Returns all guest profiles for CRM view
 app.get('/api/admin/guests', adminAuth, async (req, res) => {
     try {
         const { data: guests, error } = await supabase
             .from('guests')
-            .select('id, first_name, last_name, email, phone, source, tags, nationality, gender, ota_booking_id, ota_platform, created_at, updated_at')
-            .order('created_at', { ascending: false });
+            .select('id, first_name, last_name, email, phone, source, tags, ota_booking_id, ota_platform, created_at, updated_at')
+            .order('first_name', { ascending: true });
 
         if (error) throw error;
 

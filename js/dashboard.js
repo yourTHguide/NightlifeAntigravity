@@ -41,9 +41,9 @@
 
         // Event listeners
         loginForm.addEventListener('submit', handleLogin);
-        $('btn-logout').addEventListener('click', handleLogout);
-        $('btn-refresh-events').addEventListener('click', () => loadEvents());
-        $('btn-refresh-kpis').addEventListener('click', () => loadKPIs());
+        $('btn-logout').addEventListener('click', (e) => { e.preventDefault(); handleLogout(); });
+        $('btn-refresh-events').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); loadEvents(); });
+        $('btn-refresh-kpis').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); loadKPIs(); });
         $('btn-sync-bokun').addEventListener('click', (e) => {
             if (e) e.preventDefault();
             syncBokunData();
@@ -51,7 +51,11 @@
 
         // Tab nav
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                switchTab(btn.dataset.tab);
+            });
         });
 
         // CRM search + filter

@@ -202,9 +202,8 @@ const BCC_DATA = {
     // JSON Schemas as reference (from Gemini.md)
     schemas: {
         guest: {
-            required: ['firstName', 'lastName', 'email', 'phone', 'gender'],
+            required: ['firstName', 'lastName', 'email', 'phone'],
             enums: {
-                gender: ['male', 'female', 'other'],
                 source: ['direct', 'airbnb', 'getyourguide', 'viator', 'instagram', 'referral', 'other']
             }
         },

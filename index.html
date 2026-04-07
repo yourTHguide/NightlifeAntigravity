@@ -3,12 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <title>Bangkok Club Crawl — Structured Nightlife Experience | BEST Nightlife Thailand</title>
 
     <!-- SEO Meta Tags -->
-    <meta name="description"
-        content="Join Bangkok's premier structured nightlife experience. Curated venues, VIP entry, dedicated hosts, and smooth transportation. Every Friday & Saturday on Sukhumvit. Bangkok Nights. Done Right.">
+    <meta name="description" content="Meet people effortlessly. Party without thinking. We handle the flow.">
     <meta name="keywords"
         content="Bangkok Nightlife, Club Crawl Bangkok, Sukhumvit Clubs, Nightlife Experience, Solo Travel Bangkok, BEST Nightlife Thailand">
 
@@ -33,6 +32,101 @@
 
     <!-- Review Widgets -->
     <script src="https://elfsightcdn.com/platform.js" async></script>
+
+    <!-- Hero Mobile Adjustments -->
+    <style>
+        @media (max-width: 768px) {
+            .hero-subtitle-refined {
+                margin-top: 1.25rem !important;
+                margin-bottom: 2rem !important;
+            }
+
+            .hero-badge-refined {
+                border-radius: 50px !important;
+                padding: 0.6rem 1.4rem !important;
+            }
+
+            .hero-btn-refined {
+                padding: 1rem 2.75rem !important;
+                font-size: 0.95rem !important;
+            }
+
+            .hero-cta-wrapper-refined {
+                margin-top: 0.5rem !important;
+            }
+
+            .hero-badges-refined {
+                margin-bottom: 3.5rem !important;
+            }
+
+            .mobile-br {
+                display: block !important;
+            }
+
+            .brand-statement-subtitle {
+                font-size: 1.35rem !important;
+                line-height: 1.5 !important;
+            }
+
+            .brand-statement-title {
+                font-size: 2.25rem !important;
+            }
+
+            .brand-statement .reveal {
+                transform: translateY(20px) !important;
+            }
+        }
+
+        .mobile-br {
+            display: none;
+        }
+
+        /* Cinematic Animation Overrides */
+        .brand-statement .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+        }
+
+        .brand-statement .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stagger-deep {
+            transition-delay: 0.4s !important;
+        }
+
+        /* WhatsApp FAB Style */
+        .whatsapp-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: #FF2D95;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(255, 45, 149, 0.3);
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-decoration: none;
+        }
+
+        .whatsapp-fab:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 15px 30px rgba(255, 45, 149, 0.4);
+            background: #FF2D95;
+            filter: brightness(1.1);
+        }
+
+        .whatsapp-fab svg {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
@@ -47,25 +141,158 @@
     <main>
         <!-- Section 1: Hero -->
         <section class="hero" id="home">
-            <div class="container hero-content">
-                <div class="hero-logo">
+            <div class="container hero-content" style="text-align: center;">
+                <div class="hero-logo"
+                    style="margin: 0 auto 2.5rem; width: 130px; height: 130px; border-radius: 50%; border: 2.5px solid #FF2D95; box-shadow: 0 0 35px rgba(255, 45, 149, 0.4); background: #111114; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 1.1rem;">
                     <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Thailand"
-                        style="width: 80%; height: auto;">
+                        style="width: 100%; height: auto; transform: scale(1.1);">
                 </div>
-                <h1 class="hero-title">Bangkok <br> <span class="text-gradient-gold">Club Crawl</span></h1>
-                <p class="hero-support-line">Curated venues. Real connections.</p>
-                <div class="hero-badges">
-                    <span class="hero-badge">Solo-friendly</span>
-                    <span class="hero-badge">Hosted experience</span>
+
+                <h1 class="hero-title"
+                    style="margin-bottom: 0.5rem; font-size: 2.6rem; letter-spacing: -0.02em; font-weight: 700; line-height: 1.1;">
+                    Bangkok <br> <span class="text-gradient-gold">Club Crawl</span></h1>
+                <p class="hero-subtitle-refined"
+                    style="font-size: 1rem; color: #8E8E93; font-weight: 400; margin-bottom: 2.5rem; letter-spacing: 0.01em;">
+                    Where social meets party</p>
+
+                <div class="hero-badges hero-badges-refined"
+                    style="display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 5rem;">
+                    <span class="hero-badge hero-badge-refined"
+                        style="border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.35); padding: 0.75rem 1.5rem; font-size: 0.85rem; border-radius: 10px; color: var(--color-white); font-weight: 500;">Social
+                        Energy</span>
+                    <span class="hero-badge hero-badge-refined"
+                        style="border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.35); padding: 0.75rem 1.5rem; font-size: 0.85rem; border-radius: 10px; color: var(--color-white); font-weight: 500;">Party
+                        Ready</span>
                 </div>
-                <div class="hero-cta-wrapper" style="margin-top: var(--space-md);">
+
+                <div class="hero-cta-wrapper hero-cta-wrapper-refined">
                     <p
-                        style="font-size: 0.75rem; color: var(--color-gray-light); margin-bottom: var(--space-sm); text-transform: uppercase; letter-spacing: 0.05em;">
-                        Limited spots each night</p>
-                    <button class="btn btn-primary" id="start-booking">ENTER THE NIGHT →</button>
+                        style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 600;">
+                        LIMITED SPOTS EACH NIGHT</p>
+                    <button class="btn btn-primary hero-btn-refined" id="start-booking"
+                        style="padding: 1.15rem 3.5rem; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 12px; box-shadow: 0 10px 40px rgba(255, 45, 149, 0.35);">Join
+                        The Night →</button>
                 </div>
             </div>
         </section>
+
+        <!-- Section 1.1: Brand Statement -->
+        <section class="brand-statement"
+            style="background-color: #111114; padding: 10rem 1.5rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.03);">
+            <div class="container" style="max-width: 900px; margin: 0 auto;">
+                <p class="brand-statement-subtitle reveal"
+                    style="font-family: var(--font-headline); color: #8E8E93; font-weight: 400; font-size: 1.75rem; line-height: 1.3; margin-bottom: 2.5rem; letter-spacing: 0.02em;">
+                    Not just a meet up.<br class="mobile-br"> Not just a party.
+                </p>
+                <h2 class="brand-statement-title reveal stagger-deep"
+                    style="font-family: var(--font-headline); color: #FFFFFF; font-weight: 700; font-size: 2.8rem; line-height: 1.2; letter-spacing: -0.02em; max-width: 800px; margin: 0 auto;">
+                    A <span class="text-gradient-gold">curated</span> night where <span
+                        style="text-decoration: line-through; opacity: 0.5; font-weight: 400; font-size: 0.9em;">strangers</span>
+                    become your <span
+                        style="color: #FF2D95; text-shadow: 0 0 15px rgba(255, 45, 149, 0.6);">crew</span>.
+                </h2>
+            </div>
+        </section>
+
+
+        <!-- Section 2: How Your Night Flows -->
+        <section class="night-flow reveal" id="flow">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-label">The Journey</span>
+                    <h2 class="section-h2">How Your Night <span class="text-gradient-gold">Flows</span></h2>
+                    <p class="section-subtitle" style="color: var(--color-gray-light); font-size: 0.95rem;">From start
+                        to peak energy.</p>
+                </div>
+
+                <div class="flow-container">
+                    <!-- Step 1 -->
+                    <div class="flow-step collapsible-step">
+                        <div class="flow-energy">
+                            <div class="energy-label">40% Energy</div>
+                            <div class="energy-bar-wrap">
+                                <div class="energy-fill" style="width: 40%; background: var(--color-primary-gradient);">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flow-content">
+                            <h3 class="flow-title">Step 1 — Meet & Warm Up <span class="flow-chevron">▼</span></h3>
+                            <div class="flow-desc-wrapper">
+                                <p class="flow-desc">Arrive at a relaxed, curated venue. Break the ice easily over a few
+                                    drinks while the host makes introductions. The vibe is chill, conversational, and
+                                    perfect for meeting everyone.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flow-step collapsible-step">
+                        <div class="flow-energy">
+                            <div class="energy-label">65% Energy</div>
+                            <div class="energy-bar-wrap">
+                                <div class="energy-fill" style="width: 65%; background: var(--color-primary-gradient);">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flow-content">
+                            <h3 class="flow-title">Step 2 — Social Build <span class="flow-chevron">▼</span></h3>
+                            <div class="flow-desc-wrapper">
+                                <p class="flow-desc">As the group connects, the pacing picks up. We move to a slightly
+                                    higher energy spot where the music gets louder, the drinks flow faster, and the
+                                    group
+                                    dynamic locks in.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flow-step collapsible-step">
+                        <div class="flow-energy">
+                            <div class="energy-label">80% Energy</div>
+                            <div class="energy-bar-wrap">
+                                <div class="energy-fill" style="width: 80%; background: var(--color-primary-gradient);">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flow-content">
+                            <h3 class="flow-title">Step 3 — Movement <span class="flow-chevron">▼</span></h3>
+                            <div class="flow-desc-wrapper">
+                                <p class="flow-desc">Smooth transitions. Whether walking between close venues or hopping
+                                    in
+                                    our included private vans, the movement keeps the energy high and the night rolling
+                                    seamlessly.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="flow-step collapsible-step">
+                        <div class="flow-energy">
+                            <div class="energy-label" style="color: var(--color-gold);">Peak Energy</div>
+                            <div class="energy-bar-wrap">
+                                <div class="energy-fill"
+                                    style="width: 100%; background: var(--color-primary-gradient);"></div>
+                            </div>
+                        </div>
+                        <div class="flow-content">
+                            <h3 class="flow-title text-gradient-gold">Step 4 — Peak <span class="flow-chevron">▼</span>
+                            </h3>
+                            <div class="flow-desc-wrapper">
+                                <p class="flow-desc">We arrive at Bangkok's top clubs with VIP entry. The music is loud,
+                                    the
+                                    crowd is massive, and you're skipping the lines straight into the best nightlife the
+                                    city has to offer.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: var(--space-3xl);">
+                    <button class="btn btn-primary cta-open-booking">Secure My Spot</button>
+                </div>
+            </div>
+        </section>
+
 
         <!-- Section 1.2: Select Your Night -->
         <section class="select-night reveal" id="select-night">
@@ -186,103 +413,6 @@
             </div>
         </section>
 
-        <!-- Section 2: How Your Night Flows -->
-        <section class="night-flow reveal" id="flow">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-label">The Journey</span>
-                    <h2 class="section-h2">How Your Night <span class="text-gradient-gold">Flows</span></h2>
-                    <p class="section-subtitle" style="color: var(--color-gray-light); font-size: 0.95rem;">From start
-                        to peak energy.</p>
-                </div>
-
-                <div class="flow-container">
-                    <!-- Step 1 -->
-                    <div class="flow-step collapsible-step">
-                        <div class="flow-energy">
-                            <div class="energy-label">40% Energy</div>
-                            <div class="energy-bar-wrap">
-                                <div class="energy-fill" style="width: 40%; background: var(--color-primary-gradient);">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flow-content">
-                            <h3 class="flow-title">Step 1 — Meet & Warm Up <span class="flow-chevron">▼</span></h3>
-                            <div class="flow-desc-wrapper">
-                                <p class="flow-desc">Arrive at a relaxed, curated venue. Break the ice easily over a few
-                                    drinks while the host makes introductions. The vibe is chill, conversational, and
-                                    perfect for meeting everyone.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2 -->
-                    <div class="flow-step collapsible-step">
-                        <div class="flow-energy">
-                            <div class="energy-label">65% Energy</div>
-                            <div class="energy-bar-wrap">
-                                <div class="energy-fill" style="width: 65%; background: var(--color-primary-gradient);">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flow-content">
-                            <h3 class="flow-title">Step 2 — Social Build <span class="flow-chevron">▼</span></h3>
-                            <div class="flow-desc-wrapper">
-                                <p class="flow-desc">As the group connects, the pacing picks up. We move to a slightly
-                                    higher energy spot where the music gets louder, the drinks flow faster, and the
-                                    group
-                                    dynamic locks in.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3 -->
-                    <div class="flow-step collapsible-step">
-                        <div class="flow-energy">
-                            <div class="energy-label">80% Energy</div>
-                            <div class="energy-bar-wrap">
-                                <div class="energy-fill" style="width: 80%; background: var(--color-primary-gradient);">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flow-content">
-                            <h3 class="flow-title">Step 3 — Movement <span class="flow-chevron">▼</span></h3>
-                            <div class="flow-desc-wrapper">
-                                <p class="flow-desc">Smooth transitions. Whether walking between close venues or hopping
-                                    in
-                                    our included private vans, the movement keeps the energy high and the night rolling
-                                    seamlessly.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 4 -->
-                    <div class="flow-step collapsible-step">
-                        <div class="flow-energy">
-                            <div class="energy-label" style="color: var(--color-gold);">Peak Energy</div>
-                            <div class="energy-bar-wrap">
-                                <div class="energy-fill"
-                                    style="width: 100%; background: var(--color-primary-gradient);"></div>
-                            </div>
-                        </div>
-                        <div class="flow-content">
-                            <h3 class="flow-title text-gradient-gold">Step 4 — Peak <span class="flow-chevron">▼</span>
-                            </h3>
-                            <div class="flow-desc-wrapper">
-                                <p class="flow-desc">We arrive at Bangkok's top clubs with VIP entry. The music is loud,
-                                    the
-                                    crowd is massive, and you're skipping the lines straight into the best nightlife the
-                                    city has to offer.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="text-align: center; margin-top: var(--space-3xl);">
-                    <button class="btn btn-primary cta-open-booking">Secure My Spot</button>
-                </div>
-            </div>
-        </section>
 
         <!-- Section 3: What's Included -->
         <section class="features reveal" id="features">
@@ -408,43 +538,16 @@
 
     <!-- Booking Wizard Moved to /book -->
 
-    <!-- AI Chat Assistant -->
-    <div id="chat-widget" class="chat-widget">
-        <div id="chat-panel" class="chat-panel card" style="display: none;">
-            <div class="chat-header"
-                style="padding: var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: var(--space-sm);">
-                    <div style="width: 8px; height: 8px; background: var(--color-success); border-radius: 50%;"></div>
-                    <span
-                        style="font-family: var(--font-headline); font-weight: var(--weight-bold); font-size: var(--text-small);">BCC
-                        ASSISTANT</span>
-                </div>
-                <button id="close-chat"
-                    style="background: none; border: none; color: var(--color-gray); cursor: pointer; font-size: 1.2rem;">&times;</button>
-            </div>
-            <div id="chat-messages"
-                style="height: 300px; overflow-y: auto; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-md);">
-                <!-- Messages will appear here -->
-                <div class="ai-msg"
-                    style="background: var(--color-dark-elevated); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); align-self: flex-start; max-width: 85%; font-size: var(--text-body);">
-                    Hey — welcome. 🙌<br><br>Bangkok Club Crawl is a structured nightlife experience across Sukhumvit. 4
-                    curated venues, dedicated hosts, VIP entry, and smooth transport.<br><br>Are you in Bangkok this
-                    Friday or Saturday?
-                </div>
-            </div>
-            <div class="chat-input-area"
-                style="padding: var(--space-md); border-top: 1px solid var(--color-border); display: flex; gap: var(--space-sm);">
-                <input type="text" id="chat-input" placeholder="Ask anything..."
-                    style="flex: 1; background: var(--color-dark-base); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: var(--space-sm) var(--space-md); color: var(--color-white); font-size: var(--text-body);">
-                <button id="send-chat" class="btn-primary"
-                    style="width: 40px; height: 40px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; border: none; cursor: Pointer;">→</button>
-            </div>
-        </div>
-        <button id="chat-toggle" class="chat-toggle-btn"
-            style="position: fixed; bottom: var(--space-xl); right: var(--space-xl); width: 60px; height: 60px; border-radius: 50%; background: var(--color-gold-brushed); box-shadow: 0 0 20px var(--color-gold-glow); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <span style="font-size: 1.5rem;">💬</span>
-        </button>
-    </div>
+
+    <!-- WhatsApp Floating Action Button -->
+    <a href="https://wa.me/66660399569" target="_blank" rel="noopener noreferrer" class="whatsapp-fab"
+        aria-label="Contact us on WhatsApp">
+        <svg viewBox="0 0 24 24" width="60" height="60" xmlns="http://www.w3.org/2000/svg" fill="#FFFFFF">
+            <path
+                d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217s.231.006.332.013c.101.007.242-.038.381.285.143.331.49 1.2.53 1.279.04.079.067.171.013.273-.053.102-.081.164-.163.258-.081.094-.171.21-.245.282-.074.072-.152.151-.065.301.087.15.385.637.827 1.032.568.51 1.047.668 1.2.744.153.076.242.063.332-.041.09-.105.385-.45.487-.603.102-.153.204-.128.342-.077.139.051.877.414 1.028.489.15.075.25.112.285.176.034.064.034.37-.11.775z" />
+        </svg>
+    </a>
+
 
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
