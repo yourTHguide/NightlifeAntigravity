@@ -202,20 +202,12 @@ function initBookingWizard() {
         }
     }
 
-    function isThursdaySelected() {
-        const selectedDate = document.getElementById('selected-date').value;
-        if (!selectedDate) return false;
-        try {
-            const dateObj = new Date(selectedDate);
-            return dateObj.getDay() === 4; // 0 = Sun ... 4 = Thu
-        } catch { return false; }
-    }
+
 
     function addGuestBlock(gender = 'male', count = 1) {
         const container = document.getElementById('guest-blocks-container');
-        const isThursday = isThursdaySelected();
-        const malePrice = isThursday ? '1,200' : '1,500';
-        const femalePrice = isThursday ? '1,000' : '1,200';
+        const malePrice = '1,500';
+        const femalePrice = '1,200';
 
         const block = document.createElement('div');
         block.className = 'guest-block';
@@ -244,9 +236,8 @@ function initBookingWizard() {
     }
 
     function updateGuestBlockPrices() {
-        const isThursday = isThursdaySelected();
-        const malePrice = isThursday ? '1,200' : '1,500';
-        const femalePrice = isThursday ? '1,000' : '1,200';
+        const malePrice = '1,500';
+        const femalePrice = '1,200';
 
         const selects = wizardContainer.querySelectorAll('.guest-gender-select');
         selects.forEach(select => {
@@ -274,15 +265,7 @@ function initBookingWizard() {
             const gender = block.querySelector('.guest-gender-select').value;
             const count = parseInt(block.querySelector('.guest-count-input').value) || 0;
             if (count > 0) {
-                // Determine day value for calculatePrice function ('4' for thursday)
-                let dayValue = '5';
-                try {
-                    if (selectedDateStrIso && new Date(selectedDateStrIso).getDay() === 4) {
-                        dayValue = '4';
-                    }
-                } catch { }
-
-                subtotal += BCC_UTILS.calculatePrice(gender, count, dayValue);
+                subtotal += BCC_UTILS.calculatePrice(gender, count);
                 guestSummaryParts.push(`${count}x ${gender.charAt(0).toUpperCase() + gender.slice(1)}`);
             }
         });
@@ -377,11 +360,6 @@ function initBookingWizard() {
             payBtn.textContent = 'CREATING CHECKOUT...';
             payBtn.disabled = true;
 
-            let selectedDay = '5';
-            try {
-                selectedDay = new Date(eventDate).getDay() === 4 ? '4' : '5';
-            } catch { }
-
             // PAX breakdown
             const blocks = document.querySelectorAll('.guest-block');
             let maleCount = 0;
@@ -396,7 +374,6 @@ function initBookingWizard() {
             const payload = {
                 guest: { first_name: name, email: email, phone: whatsapp },
                 event_date: eventDate,
-                event_day: selectedDay,
                 pax: { male: maleCount, female: femaleCount },
                 promo_code: appliedPromo ? appliedPromo.code : null,
                 source_channel: TRACKED_SOURCE || null

@@ -116,7 +116,7 @@ function initSelectNightCards() {
             ],
             time: "Every Thursday\n9:00 PM – ~12:30 AM",
             location: "Thonglor / Ekkamai area — exact meeting point shared after booking",
-            price: "Male: 1,200 THB\nFemale: 1,000 THB",
+            price: "Male: 1,500 THB\nFemale: 1,200 THB",
             bookingValue: "4" // Maps to a potential Thursday option in booking wizard later. Will use 5 for now as fallback.
         },
         'Friday': {

@@ -222,19 +222,13 @@ const BCC_DATA = {
  * 🛠️ Data Utility Methods
  */
 const BCC_UTILS = {
-    // Calculate price based on gender, quantity, and day
-    calculatePrice: (gender, quantity, day) => {
-        let malePrice = BCC_DATA.schemas.booking.logic.malePrice; // 1500
-        let femalePrice = BCC_DATA.schemas.booking.logic.femalePrice; // 1200
-
-        // Thursday pricing
-        if (day === '4') {
-            malePrice = 1200;
-            femalePrice = 1000;
-        }
+    // Calculate price based on gender and quantity (Unified pricing for all days)
+    calculatePrice: (gender, quantity) => {
+        const malePrice = BCC_DATA.schemas.booking.logic.malePrice; // 1500
+        const femalePrice = BCC_DATA.schemas.booking.logic.femalePrice; // 1200
 
         const unitPrice = gender === 'female' ? femalePrice : malePrice;
-        return unitPrice * quantity;
+        return unitPrice * (parseInt(quantity) || 0);
     },
 
     // Format currency to THB

@@ -1,0 +1,24 @@
+[dotenv@17.3.1] injecting env (12) from .env -- tip: ⚙️  override existing env vars with { override: true }
+🚀 Server Booting...
+🔗 Supabase Connected (initialized)
+📦 Middlewares Loading...
+Main Module Check: true
+
+╔══════════════════════════════════════════════════╗
+║  🌃 Bangkok Club Crawl — Booking Engine          ║
+║  Server running at http://localhost:3000          ║
+║                                                  ║
+║  Endpoints:                                      ║
+║    POST /api/create-checkout                     ║
+║    POST /api/stripe-webhook                      ║
+║    POST /api/webhooks/bokun                      ║
+║    POST /api/omnichannel-chat                    ║
+║    GET  /api/booking-status/:id                  ║
+║                                                  ║
+║  Email (Nodemailer):                             ║
+║    Sender:  Bangkokclubcrawl@gmail.com  ║
+║    Admin:   bestnightlifethailand@gmail.com  ║
+║    Status:  ✅ Ready              ║
+╚══════════════════════════════════════════════════╝
+        
+📡 Realtime subscription status: SUBSCRIBED

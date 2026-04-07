@@ -282,7 +282,7 @@ app.use(express.static(path.join(__dirname), {
 app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
 
     try {
-        const { guest, event_date, pax, promo_code, event_day, source_channel } = req.body;
+        const { guest, event_date, pax, promo_code, source_channel } = req.body;
 
         // ——— 1. Validate Input ———
         if (!guest?.first_name || !guest?.phone || !guest?.email) {
@@ -304,25 +304,12 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
         const femaleCount = parseInt(pax.female) || 0;
         const totalPax = maleCount + femaleCount;
 
-        // ——— 2. Detect Event Day & Server-side Price Calculation ———
-        // Determine if this is a Thursday booking:
-        //   - Frontend sends event_day ('4' = Thursday) as explicit signal
-        //   - Fallback: derive day-of-week from event_date string
-        let isThursday = false;
-        if (event_day === '4' || event_day === 'Thursday') {
-            isThursday = true;
-        } else {
-            const parsedDate = new Date(event_date + 'T12:00:00'); // noon to avoid timezone issues
-            if (!isNaN(parsedDate.getTime()) && parsedDate.getDay() === 4) { // 4 = Thursday
-                isThursday = true;
-            }
-        }
-
-        const MALE_PRICE = isThursday ? 1200 : 1500;
-        const FEMALE_PRICE = isThursday ? 1000 : 1200;
+        // ——— 2. Server-side Price Calculation (Unified) ———
+        const MALE_PRICE = 1500;
+        const FEMALE_PRICE = 1200;
         let subtotal = (maleCount * MALE_PRICE) + (femaleCount * FEMALE_PRICE);
 
-        console.log(`🗓️ Event: ${event_date} | Day: ${isThursday ? 'Thursday' : 'Fri/Sat'} | Pricing: M=${MALE_PRICE} F=${FEMALE_PRICE}`);
+        console.log(`🗓️ Event: ${event_date} | Pricing: M=${MALE_PRICE} F=${FEMALE_PRICE}`);
         let discountAmount = 0;
         let validatedPromoCode = null;
 
@@ -449,7 +436,7 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
                 booking_id: booking.id,
                 guest_id: guestId,
                 event_date: event_date,
-                event_type: isThursday ? 'social_night' : 'club_crawl',
+                event_type: 'club_crawl',
                 phone: guest.phone,
                 payment_status: 'Pending',
                 promo_code: validatedPromoCode || '',
