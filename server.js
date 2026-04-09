@@ -11,7 +11,14 @@
  * Also serves the static frontend on all other routes.
  */
 
+
+// ——— Vercel Config ———
+// Disable Vercel's default body parsing to preserve the raw body for Stripe signature verification.
+// We manually parse JSON for all other routes using express.json() with a filter.
+const vercelConfig = { api: { bodyParser: false } };
+
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -236,10 +243,16 @@ function buildAdminNotificationText({ firstName, email, phone, eventDate, pax, p
 const app = express();
 
 // ——— Middleware ———
-// Stripe webhook needs raw body for signature verification
-app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }));
+// Note: Vercel bodyParser is disabled (see vercelConfig).
+// We manually parse JSON for all routes EXCEPT the Stripe webhook to preserve its raw stream.
+app.use((req, res, next) => {
+    if (req.originalUrl === '/api/stripe-webhook') {
+        next();
+    } else {
+        express.json()(req, res, next);
+    }
+});
 console.log('📦 Middlewares Loading...');
-app.use(express.json());
 app.use(cors());
 
 // ——— Extensionless URL Middleware ———
@@ -480,13 +493,27 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
 // ═══════════════════════════════════════════════════
 app.post('/api/stripe-webhook', async (req, res) => {
     let event;
+    let rawBody;
+
+    try {
+        // ——— 0. Read Raw Body Stream ———
+        // Required because Vercel bodyParser is disabled to preserve the stream for signature verification.
+        const chunks = [];
+        for await (const chunk of req) {
+            chunks.push(chunk);
+        }
+        rawBody = Buffer.concat(chunks);
+    } catch (err) {
+        console.error('⚠️ Failed to read raw body:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
 
     // ——— 1. Verify Signature (Mandatory for Production) ———
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
     } catch (err) {
         console.error('⚠️ Webhook signature verification failed:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -2831,3 +2858,4 @@ app.post('/api/omnichannel-chat', async (req, res) => {
 
 // Export for Vercel serverless
 module.exports = app;
+module.exports.config = vercelConfig;
