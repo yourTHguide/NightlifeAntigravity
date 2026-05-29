@@ -133,23 +133,41 @@ Direct same-day cancellations generally non-refundable.
 AI cannot override refund policy.
 5️⃣ Visual & Brand System
 This governs Anti-Gravity UI generation.
-Color System
-Primary Accent (Neon Pink):
-#FF2D95
-Rose gold accent (soft metallic gradient)
-Dark Base:
-#111114
-#1C1C1E
-White:
-#FFFFFF
-Soft Gray:
-#8E8E93
-Pink is accent only.
-Never dominate entire screen with pink.
+
+### Core Color System
+
+1. Brand: Bangkok Club Crawl (High-Energy Public Product)
+Vibe: Electric, loud, high-energy, and action-oriented.
+- Primary Accent: #FF2D95 (Electric Pink)
+- Neutral: #FFFFFF (Clean White)
+
+2. Brand: BEST Nightlife Thailand (Premium VIP Concierge App)
+Vibe: Exclusive, premium, curated, and minimalist.
+- Primary Colors: #C9A84C (Champagne Gold), #FFFFFF (Clean White), #2C2C2E (Charcoal Gray)
+- Accent Rule: #FF2D95 (Electric Pink) strictly as a minimal secondary accent.
+
+Base Colors (Shared):
+- Dark Base: #111114, #1C1C1E
+- Soft Gray: #8E8E93
+
+### UI Button Design
+
+1. Bangkok Club Crawl
+- Rules: Must be solid Electric Pink (#FF2D95) background with Clean White (#FFFFFF) text.
+- Usage: Use these solid pink buttons generously across the bkkclubcrawl.com UI to drive instant booking conversions.
+
+2. BEST Nightlife Thailand
+- Rules: DO NOT use solid pink. Use Champagne Gold (#C9A84C), Clean White, or Charcoal Gray for primary action buttons.
+- Accent Use: Electric Pink (#FF2D95) for subtle hover glows, thin borders, active tab underlines, or small text links only.
+
+Reasoning: Too much solid pink breaks the premium luxury feel of BEST Nightlife Thailand. It must feel like an exclusive concierge tool, not a loud party flyer.
+
 Design Emotion
 Electric but controlled.
 Premium but friendly.
 Neon pulse inside structured luxury.
+Luxury through restraint.
+
 No:
 • Rainbow neon
 • Club flyer chaos

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Heart behind the Night. | BEST NIGHTLIFE THAILAND</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/luxury-landing.css?v=5.9">
+    <style>
+        body {
+            background-color: #0D0D0D;
+            margin: 0;
+        }
+
+        .page-content {
+            padding: 0 5% 60px 5%;
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: calc(100vh - 80px);
+        }
+
+        .micro-label {
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 15px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #EA003A, #820065);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(234,0,58,0.3);
+        }
+        .italic-text {
+            font-style: italic;
+        }
+
+        /* Section 1 */
+        .about-hero {
+            text-align: center;
+            margin: 0;
+            padding: 240px 20px 80px 20px;
+            background-color: #0D0D0D;
+            background-image: radial-gradient(150% 120% at 75% 0%, #7A0040 0%, #35002F 40%, #0D0D0D 80%);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .hero-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 42px;
+            color: #FFFFFF;
+            line-height: 1.1;
+        }
+
+        /* Section 2 */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            text-align: center;
+            margin-bottom: 100px;
+            padding: 40px 0;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-number {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 48px;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+        .stat-glow {
+            color: #EA003A;
+            text-shadow: 0 0 15px rgba(234,0,58,0.4);
+        }
+        .stat-label {
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.5);
+        }
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+
+        /* Section 3 */
+        .story-matrix { margin-bottom: 100px; }
+        .section-header-bar { margin-bottom: 60px; text-align: center; }
+        .section-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 36px;
+            color: #FFFFFF;
+        }
+        .split-row {
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            margin-bottom: 80px;
+        }
+        .split-row.reverse {
+            flex-direction: row-reverse;
+        }
+        .split-media {
+            flex: 1;
+            aspect-ratio: 5 / 7;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .split-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .split-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .card-marker {
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #EA003A;
+            margin-bottom: 15px;
+        }
+        .card-header {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-style: italic;
+            font-size: 32px;
+            background: linear-gradient(135deg, #EA003A, #820065);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        .card-body {
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: #FFFFFF;
+            line-height: 1.65;
+            margin: 0;
+        }
+        @media (max-width: 768px) {
+            .split-row, .split-row.reverse {
+                flex-direction: column;
+                gap: 40px;
+                margin-bottom: 60px;
+            }
+        }
+
+        /* Section 4 */
+        .timeline-flow { margin-bottom: 100px; max-width: 800px; margin: 0 auto 100px auto; }
+        .timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            position: relative;
+        }
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 24px;
+            top: 20px;
+            bottom: 20px;
+            width: 1px;
+            background: rgba(255,255,255,0.1);
+            z-index: 0;
+        }
+        .timeline-node {
+            display: flex;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .node-tag {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(234,0,58,0.2), rgba(130,0,101,0.2));
+            border: 1px solid rgba(234,0,58,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 14px;
+            color: #FFFFFF;
+        }
+        .node-content { padding-top: 10px; }
+        .node-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 24px;
+            color: #FFFFFF;
+            margin-bottom: 5px;
+            margin-top: 0;
+        }
+        .node-desc {
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Section 5 */
+        .conversion-bar {
+            text-align: center;
+            padding: 80px 5%;
+            background: rgba(20,20,20,0.5);
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 40px;
+        }
+        .closing-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 38px;
+            color: #FFFFFF;
+            margin-bottom: 15px;
+            margin-top: 0;
+        }
+        .closing-subtitle {
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: #AEAEB2;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .btn-glow {
+            display: inline-block;
+            padding: 16px 32px;
+            border-radius: 30px;
+            background: rgba(13, 13, 13, 0.9);
+            color: #FFFFFF;
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            text-decoration: none;
+            transition: transform 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 32px;
+            background: linear-gradient(135deg, #EA003A, #820065);
+            z-index: -1;
+            box-shadow: 0 0 15px rgba(234,0,58,0.6);
+            transition: box-shadow 0.2s;
+        }
+        .btn-glow:hover {
+            transform: translateY(-2px);
+        }
+        .btn-glow:hover::before {
+            box-shadow: 0 0 25px rgba(234,0,58,0.8);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Nav -->
+    <nav class="global-nav">
+        <button class="hamburger" id="hamburger-btn">☰</button>
+    </nav>
+    <div class="nav-drawer-overlay" id="nav-overlay"></div>
+    <div class="nav-drawer" id="nav-drawer">
+        <button class="nav-drawer-close" id="close-drawer">&times;</button>
+        <div class="nav-links">
+            <a href="landing.html">Home</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <!-- SECTION 1: THE HERO ACCESS HOOK -->
+    <section class="about-hero">
+        <div class="logo-wrapper" style="margin-bottom: 20px;">
+            <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" class="hero-logo" style="margin: 0; width: 60px;">
+        </div>
+        <div class="micro-label">OUR MANIFESTO & PASSION</div>
+        <h1 class="hero-title">The Heart behind <br>the <span class="gradient-text italic-text">Night.</span></h1>
+    </section>
+
+    <main class="page-content">
+
+        <!-- SECTION 2: THE METRIC STATS ROW -->
+        <section class="stats-row">
+            <div class="stat-col">
+                <div class="stat-number">14+</div>
+                <div class="stat-label">BESPOKE NIGHTLIFE EXPERIENCES</div>
+            </div>
+            <div class="stat-col">
+                <div class="stat-number stat-glow">100%</div>
+                <div class="stat-label">TURNKEY PRODUCTION & LOGISTICS</div>
+            </div>
+            <div class="stat-col">
+                <div class="stat-number">3 Cities</div>
+                <div class="stat-label">BANGKOK · PATTAYA · PHUKET</div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: THE VISUAL STORY MATRIX -->
+        <section class="story-matrix">
+            <div class="section-header-bar">
+                <div class="micro-label">OUR STORIES & BELIEFS</div>
+                <h2 class="section-title">What <span class="gradient-text italic-text">Drives</span> Us</h2>
+            </div>
+            <div class="split-row">
+                <div class="split-media">
+                    <img src="assets/images/Passion.jpg" alt="The Passion">
+                </div>
+                <div class="split-text">
+                    <div class="card-marker">01 / THE PASSION</div>
+                    <h3 class="card-header">Thailand has everything you want.</h3>
+                    <p class="card-body">Bangkok, Pattaya, and Phuket hold the most electric nightlife on the planet. To us, a perfect night isn't just a table booking—it's an art form. We translate the beautiful chaos of the city into a premium, flawless masterpiece designed around your milestone celebration.</p>
+                </div>
+            </div>
+
+            <div class="split-row reverse">
+                <div class="split-media">
+                    <img src="assets/images/Hospitality.jpg" alt="The Heart">
+                </div>
+                <div class="split-text">
+                    <div class="card-marker">02 / THE HEART</div>
+                    <h3 class="card-header">We bring the real Thai hospitality.</h3>
+                    <p class="card-body">True luxury is about how you are made to feel. While our look is modern-minimal and sharp, our service is warm, proactive, and deeply personal. We carry the heart of Thai hospitality in everything we do, ensuring a flawless perimeter from doorstep to sunrise.</p>
+                </div>
+            </div>
+
+            <div class="split-row">
+                <div class="split-media">
+                    <img src="assets/images/Reward.jpg" alt="The Reward">
+                </div>
+                <div class="split-text">
+                    <div class="card-marker">03 / THE REWARD</div>
+                    <h3 class="card-header">Your satisfaction is our only accolade.</h3>
+                    <p class="card-body">Our team lives the culture. We don't just offer an aesthetic; we live for the late-night glam, the music, and the people. Seeing the absolute fulfillment on our clients' faces when a surprise moment lands perfectly is the ultimate honor.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: THE CLIENT EXPERIENCE FLOW -->
+        <section class="timeline-flow">
+            <div class="section-header-bar">
+                <div class="micro-label">THE CLIENT EXPERIENCE FLOW</div>
+                <h2 class="section-title">How It <span class="gradient-text italic-text">Works</span></h2>
+            </div>
+            <div class="timeline-container">
+                <div class="timeline-node">
+                    <div class="node-tag">01</div>
+                    <div class="node-content">
+                        <h4 class="node-title">The Brief</h4>
+                        <p class="node-desc">Tell us your exact vibe, location targets, and group scale.</p>
+                    </div>
+                </div>
+                <div class="timeline-node">
+                    <div class="node-tag">02</div>
+                    <div class="node-content">
+                        <h4 class="node-title">The Curation</h4>
+                        <p class="node-desc">Our dedicated directors pre-arrange elite table configurations, lighting structures, and audio arrays.</p>
+                    </div>
+                </div>
+                <div class="timeline-node">
+                    <div class="node-tag">03</div>
+                    <div class="node-content">
+                        <h4 class="node-title">The Execution</h4>
+                        <p class="node-desc">You show up. Your host manages the mechanics. Your night is completely mastered.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: THE FINAL CONVERSION BAR -->
+        <section class="conversion-bar">
+            <h2 class="closing-title">Ready to craft your <span class="gradient-text italic-text">perfect night?</span></h2>
+            <p class="closing-subtitle">Speak directly with a director and let us begin curating your bespoke Thailand experience.</p>
+            <a href="contact.html" class="btn-glow">CONNECT WITH A DIRECTOR &rarr;</a>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="global-footer">
+        <div class="footer-content">
+            <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" style="height: 35px; margin-bottom: 15px;">
+            <span class="footer-title">BEST NIGHTLIFE THAILAND</span>
+            <span class="footer-copyright">© 2026 — Bangkok · Pattaya · By inquiry only.</span>
+        </div>
+    </footer>
+
+    <script>
+        const hamburger = document.getElementById('hamburger-btn');
+        const drawer = document.getElementById('nav-drawer');
+        const overlay = document.getElementById('nav-overlay');
+        const closeDrawer = document.getElementById('close-drawer');
+
+        const openNav = () => {
+            drawer.classList.add('open');
+            overlay.classList.add('open');
+        };
+        const closeNav = () => {
+            drawer.classList.remove('open');
+            overlay.classList.remove('open');
+        };
+
+        hamburger.addEventListener('click', openNav);
+        closeDrawer.addEventListener('click', closeNav);
+        overlay.addEventListener('click', closeNav);
+    </script>
+</body>
+</html>

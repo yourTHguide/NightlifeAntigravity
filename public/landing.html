@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bangkok Nightlife. Unlocked. | BEST NIGHTLIFE THAILAND</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Private parties, luxury yachts, and VIP club access. Perfectly designed for you. BEST NIGHTLIFE THAILAND is your premium nightlife concierge.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/luxury-landing.css">
+</head>
+<body>
+
+    <!-- Section 1: The Immersive Hero Hook -->
+    <section class="hero" id="home">
+        <div class="radial-glow glow-top-left"></div>
+        <div class="hero-content">
+            <div class="logo-wrapper">
+                <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" class="hero-logo">
+                <span class="logo-text">PRIVATE ACCESS COLLECTIVE</span>
+            </div>
+            <h1 style="font-weight: 700; color: #FFFFFF;">Bangkok Nightlife.<br><span class="hero-emphasis">Unlocked.</span></h1>
+            <p>Private parties, luxury yachts, and VIP club access.<br>Perfectly designed for you.</p>
+            <a href="#master-deck" class="btn-glow">EXPLORE CLIENT EXPERIENCES ↓</a>
+        </div>
+    </section>
+
+    <!-- Section 2: Our Signature Events (The Culture) -->
+    <section class="signature-events" id="signature-events">
+        <div class="radial-glow glow-bottom-right"></div>
+        <div class="section-header">
+            <h2 class="section-title" style="font-weight: 700; color: #FFFFFF;">Our Signature <span class="accent-italic">Events</span></h2>
+            <p class="section-subtitle">We don't just book tables. We create the party. Join our legendary public events in the city.</p>
+        </div>
+        
+        <div class="events-grid">
+            <!-- Event 01 -->
+            <div class="event-card" style="background-image: url('assets/images/Bangkok Club Crawl.png');">
+                <div class="event-info">
+                    <h3>Bangkok Club Crawl</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.9rem;">The ultimate VIP venue tour.</p>
+                </div>
+            </div>
+            
+            <!-- Event 02 -->
+            <div class="event-card" style="background-image: url('assets/images/Bangkok Mob.png');">
+                <div class="event-info">
+                    <h3>Bangkok Mob</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Immersive theme parties.</p>
+                </div>
+            </div>
+            
+            <!-- Event 03 -->
+            <div class="event-card" style="background-image: url('assets/images/BangkokMasquerade-218.jpg');">
+                <div class="event-info">
+                    <h3>Bangkok Masquerade</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.9rem;">Our annual secret society gala.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="#master-deck" class="btn-outline">EXPLORE UPCOMING SCHEDULES →</a>
+        </div>
+    </section>
+
+    <!-- Section 3: The Method (Pillars — The Trust) -->
+    <section class="three-pillars" id="pillars">
+        <div class="radial-glow glow-top-left"></div>
+        <div class="section-header" style="text-align: center; margin-bottom: 60px;">
+            <span class="logo-text">THE METHOD</span>
+            <h2 class="section-title" style="font-weight: 700; color: #FFFFFF; margin-bottom: 15px;">The BEST <span class="accent-italic">Execution</span></h2>
+            <p class="section-subtitle" style="margin: 0 auto; text-align: center;">Our signature framework for <strong style="color: var(--color-core-accent);">unrivaled premium hosting</strong>.</p>
+        </div>
+        <div class="pillars-grid">
+            <div class="pillar">
+                <h3><strong>01 / The Exclusivity</strong><br><br>Preferred table alignment and immediate access layout parameters pre-arranged at institutions like Sing Sing and Levels.</h3>
+            </div>
+            <div class="pillar">
+                <h3><strong>02 / The Expertise</strong><br><br>Technical setup management. Turnkey implementation of custom lighting structures, premium audio arrays, and logistics.</h3>
+            </div>
+            <div class="pillar">
+                <h3><strong>03 / The Experienced Hosts</strong><br><br>Senior nightlife directors managing the energy and security of your collective itinerary from arrival to sunrise.</h3>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: The Private Experience Master Deck -->
+    <section class="master-deck-section" id="master-deck">
+        <div class="radial-glow glow-bottom-right"></div>
+        <div style="text-align: center; margin-bottom: 40px;">
+            <span class="logo-text">THE MASTER DECK</span>
+            <h2 class="section-title" style="font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; color: #FFFFFF;">Private <span class="accent-italic">Experiences</span></h2>
+        </div>
+        
+        <div class="deck-wrapper">
+            <div class="deck-container" id="deck-container">
+                <!-- Cards are injected by JavaScript here -->
+            </div>
+            
+            <div class="deck-nav-container">
+                <button class="btn-nav btn-nav-prev" id="btn-prev" aria-label="Previous Experience">←</button>
+                <button class="btn-nav btn-nav-next" id="btn-next" aria-label="Next Experience">→</button>
+            </div>
+        </div>
+        
+        <div class="swipe-hint">
+            <span>→</span> SWIPE OR CLICK TO EXPLORE
+        </div>
+    </section>
+
+    <!-- Bottom Sheet Modal (Injected with data on click) -->
+    <div class="bottom-sheet-overlay" id="bottom-sheet-overlay">
+        <div class="bottom-sheet" id="bottom-sheet">
+            <div class="drag-handle" id="drag-handle"></div>
+            <button class="close-sheet" id="close-sheet">&times;</button>
+            <div class="sheet-top-accent"></div>
+            
+            <h2 class="sheet-title" id="sheet-title">Experience Title</h2>
+            <div class="sheet-price" id="sheet-price">Price goes here</div>
+            
+            <p class="sheet-inclusions" id="sheet-inclusions">
+                Inclusions text goes here.
+            </p>
+            
+            <div class="sheet-btn-wrapper">
+                <a href="#" class="sheet-btn" id="sheet-btn" target="_blank" rel="noopener noreferrer">Request This Experience →</a>
+                <p class="sheet-subtext">Exact pricing confirmed after inquiry — no surprises.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: Global Footer Component -->
+    <footer class="global-footer">
+        <div class="footer-content">
+            <span class="footer-title">BEST NIGHTLIFE THAILAND</span>
+            <span class="footer-copyright">© 2026 — Bangkok · Pattaya · By inquiry only.</span>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/luxury-landing.js"></script>
+</body>
+</html>

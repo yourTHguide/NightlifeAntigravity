@@ -1,0 +1,7 @@
+__turbopack_load_page_chunks__("/concierge", [
+  "static/chunks/08hovp0568tac.js",
+  "static/chunks/0.lxwdnk5e5l9.js",
+  "static/chunks/0wa5vs59kk-0y.js",
+  "static/chunks/0bonac2~30.ld.css",
+  "static/chunks/turbopack-0x283dh~-b-on.js"
+])
