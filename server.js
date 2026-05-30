@@ -260,8 +260,8 @@ app.use(cors());
 app.get('/', (req, res, next) => {
     const host = req.headers.host || '';
     if (host.includes('bestnightlifethailand.com')) {
-        console.log(`🌐 Host ${host} detected: Redirecting root (/) to Concierge (/concierge)`);
-        return res.redirect('/concierge');
+        console.log(`🌐 Host ${host} detected: Serving Concierge (landing.html) on root (/)`);
+        return res.sendFile(path.join(__dirname, 'landing.html'));
     }
     // For bkkclubcrawl.com or generic vercel.app/localhost, continue to default index.html
     next();
