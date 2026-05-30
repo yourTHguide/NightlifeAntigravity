@@ -153,15 +153,17 @@ const initLuxuryLanding = () => {
         card.style.backgroundImage = `url('${exp.img || "assets/images/hero.jpeg"}')`;
 
         card.innerHTML = `
-            <div class="card-category">${exp.category || "VIP"}</div>
-            <div class="tier-label">${exp.tier.replace('EXPERIENCE ', '')}</div>
+            <div class="card-top-bar">
+                <div class="tier-pill">${exp.category || "LUXURY"}</div>
+                <div class="deck-index-pill">${String(index + 1).padStart(2, '0')} / ${String(experiences.length).padStart(2, '0')}</div>
+            </div>
             <div class="card-content">
                 <div class="card-bottom">
-                    <h3 class="card-title" style="font-weight: 700;">${exp.title}</h3>
+                    <h3 class="card-title">${exp.title}</h3>
                     <div class="pill-container">
                         ${generatePills(exp.pills)}
                     </div>
-                    <button class="btn-glow card-cta">Request This Experience →</button>
+                    <button class="btn-glow card-cta" style="width: 100%; display: flex; justify-content: center;">VIEW EXPERIENCE →</button>
                 </div>
             </div>
         `;
@@ -172,6 +174,11 @@ const initLuxuryLanding = () => {
     const cards = Array.from(document.querySelectorAll('.deck-card'));
 
     const updateDeck = () => {
+        const indicator = document.getElementById('deck-indicator');
+        if (indicator) {
+            indicator.textContent = `${String(currentIndex + 1).padStart(2, '0')} / ${String(experiences.length).padStart(2, '0')}`;
+        }
+        
         cards.forEach((card, index) => {
             card.classList.remove('front', 'middle', 'back', 'hidden', 'active-card');
             
