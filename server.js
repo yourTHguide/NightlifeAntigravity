@@ -267,6 +267,11 @@ app.get('/', (req, res, next) => {
     next();
 });
 
+// ——— Premium Interface Route ———
+app.get('/concierge', (req, res) => {
+    res.sendFile(path.join(__dirname, 'landing.html'));
+});
+
 // ——— Extensionless URL Middleware ———
 // Matches the routing logic in vercel.json for local development
 app.use((req, res, next) => {
