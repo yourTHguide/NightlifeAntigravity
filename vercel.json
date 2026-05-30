@@ -72,6 +72,16 @@
             "dest": "/book.html"
         },
         {
+            "src": "/",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "(?:.*\\.)?bestnightlifethailand\\.com"
+                }
+            ],
+            "dest": "/concierge"
+        },
+        {
             "src": "/(.*)",
             "dest": "/index.html"
         }
