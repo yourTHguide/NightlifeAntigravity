@@ -1092,9 +1092,18 @@ section {
     [class*="experiences-heading"],
     .deck-title,
     .master-deck-section h2 {
-        font-size: 28px !important; /* Slightly scale down to safely fit mobile screen widths */
-        white-space: nowrap !important; /* Mathematically prevents the words from breaking into two lines */
-        letter-spacing: -0.02em !important; /* Tighten tracking beautifully for premium mobile editorial look */
+        /* Use fluid font scaling to match the premium size of Sections 2 & 3 */
+        font-size: 7.5vw !important; 
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        letter-spacing: -0.03em !important;
+        line-height: 1.2 !important;
+        
+        /* Add slight horizontal breathing room to prevent screen edge clipping */
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+        box-sizing: border-box !important;
     }
 }
+
 
