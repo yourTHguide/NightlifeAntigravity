@@ -255,6 +255,18 @@ app.use((req, res, next) => {
 console.log('📦 Middlewares Loading...');
 app.use(cors());
 
+// ——— Host-Based Routing Middleware (Content-Based Router) ———
+// Multi-domain mapping: Intercept GET / requests
+app.get('/', (req, res, next) => {
+    const host = req.headers.host || '';
+    if (host.includes('bestnightlifethailand.com')) {
+        console.log(`🌐 Host ${host} detected: Redirecting root (/) to Concierge (/concierge)`);
+        return res.redirect('/concierge');
+    }
+    // For bkkclubcrawl.com or generic vercel.app/localhost, continue to default index.html
+    next();
+});
+
 // ——— Extensionless URL Middleware ———
 // Matches the routing logic in vercel.json for local development
 app.use((req, res, next) => {
