@@ -139,13 +139,16 @@ export default function BestNightlifeConcierge() {
         }),
       });
 
-      if (response.ok || true) { // Simulated success if endpoint not ready
+      if (response.ok) {
         setSubmitSuccess(true);
         setTimeout(() => {
           setActiveModal(null);
           setSubmitSuccess(false);
           setFormData({ name: '', whatsapp: '', date: '', groupSize: '', budgetRange: '', occasion: '', preferredVibe: '' });
         }, 3000);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.error || 'Failed to submit inquiry. Please double check your details and try again.');
       }
     } catch (error) {
       console.error('Submission error:', error);
