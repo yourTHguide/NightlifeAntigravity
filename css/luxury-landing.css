@@ -1083,3 +1083,18 @@ section {
     filter: none !important;
     transform: none !important;
 }
+
+/* 6. Mobile typography override to force single-line Section 4 title */
+@media screen and (max-width: 767px) {
+    /* Target the Section 4 main heading exactly */
+    #section-4-title,
+    .section-4 h2,
+    [class*="experiences-heading"],
+    .deck-title,
+    .master-deck-section h2 {
+        font-size: 28px !important; /* Slightly scale down to safely fit mobile screen widths */
+        white-space: nowrap !important; /* Mathematically prevents the words from breaking into two lines */
+        letter-spacing: -0.02em !important; /* Tighten tracking beautifully for premium mobile editorial look */
+    }
+}
+
