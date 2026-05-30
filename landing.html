@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Styles -->
-    <link rel="stylesheet" href="css/luxury-landing.css?v=5.9">
+    <link rel="stylesheet" href="css/luxury-landing.css?v=7.2">
 </head>
 <body>
 
@@ -41,7 +41,7 @@
             </div>
             <h1 style="font-weight: 700; color: #FFFFFF;">Bangkok Nightlife.<br><span class="hero-emphasis">Unlocked.</span></h1>
             <p>Private parties, luxury yachts, and VIP club access.<br>Perfectly designed for you.</p>
-            <a href="#master-deck" class="btn-glow">EXPLORE PRIVATE EXPERIENCES ↓</a>
+            <a href="#master-deck" class="btn-glow" style="font-size: 0.7rem; padding: 12px 24px;">EXPLORE PRIVATE EXPERIENCES ↓</a>
         </div>
     </section>
 
@@ -111,19 +111,24 @@
     <section class="master-deck-section" id="master-deck">
         <div class="radial-glow glow-bottom-right"></div>
         <div class="deck-header-group">
-            <div class="deck-micro-label">04 — THE DECK</div>
             <h2 class="deck-title">Private <span class="deck-emphasis">Experiences</span></h2>
         </div>
         
-        <div class="deck-wrapper">
-            <div class="deck-container" id="deck-container">
-                <!-- Cards are injected by JavaScript here -->
+        <div class="swipe-hint">→ SWIPE OR CLICK TO EXPLORE</div>
+        
+        <div class="deck-viewport">
+            <button class="btn-nav btn-nav-prev" id="btn-prev" aria-label="Previous Experience">←</button>
+            <div class="deck-wrapper">
+                <div class="deck-container" id="deck-container">
+                    <!-- Cards are injected by JavaScript here -->
+                </div>
             </div>
-            
-            <div class="deck-nav-container">
-                <button class="btn-nav btn-nav-prev" id="btn-prev" aria-label="Previous Experience">←</button>
-                <button class="btn-nav btn-nav-next" id="btn-next" aria-label="Next Experience">→</button>
-            </div>
+            <button class="btn-nav btn-nav-next" id="btn-next" aria-label="Next Experience">→</button>
+        </div>
+        
+        <div class="deck-nav-mobile">
+            <button class="btn-nav btn-nav-prev-m" id="btn-prev-m" aria-label="Previous Experience">←</button>
+            <button class="btn-nav btn-nav-next-m" id="btn-next-m" aria-label="Next Experience">→</button>
         </div>
     </section>
 
@@ -285,6 +290,6 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="js/luxury-landing.js?v=5.8"></script>
+    <script src="js/luxury-landing.js?v=7.2"></script>
 </body>
 </html>

@@ -278,7 +278,7 @@ section {
 .deck-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   color: #FFFFFF;
   margin-bottom: 16px;
   line-height: 1.1;
@@ -371,18 +371,18 @@ section {
   color: rgba(255,255,255,0.7);
   font-family: var(--font-mono);
 }
-.deck-card:not(.front) .card-content,
-.deck-card:not(.front) .card-category,
-.deck-card:not(.front) .tier-label {
+/* Hide content on inactive cards, show on active */
+.deck-card:not(.active-card) .card-content,
+.deck-card:not(.active-card) .card-top-bar,
+.deck-card:not(.active-card) .tier-label {
   opacity: 0 !important;
   pointer-events: none;
-  transition: opacity 0.3s ease;
 }
-.deck-card.front .card-content,
-.deck-card.front .card-category,
-.deck-card.front .tier-label {
-  opacity: 1;
-  transition: opacity 0.3s ease;
+.deck-card.active-card .card-content,
+.deck-card.active-card .card-top-bar,
+.deck-card.active-card .tier-label {
+  opacity: 1 !important;
+  pointer-events: auto;
 }
 
 .card-content {
@@ -467,53 +467,91 @@ section {
   .bottom-sheet { width: 95%; max-width: none; border-radius: 30px; bottom: 2.5%; }
 }
 
-/* Master Deck Wrapper and Flanking Navigation */
+/* Master Deck Viewport — flanking arrows on desktop */
+.deck-viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
 .deck-wrapper {
   position: relative;
   width: 100%;
   max-width: 380px;
-  margin: 0 auto;
+  flex-shrink: 0;
 }
 .deck-nav-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 24px;
-  margin-top: 40px;
-  pointer-events: auto;
+  display: none; /* replaced by deck-viewport */
 }
-.deck-indicator {
-  font-size: 0.85rem;
-  letter-spacing: 0.2em;
-  color: rgba(255,255,255,0.7);
-  font-family: var(--font-mono);
+.deck-nav-mobile {
+  display: none; /* hidden on desktop, shown on mobile */
 }
 .btn-nav {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
-  background: transparent;
-  color: rgba(255,255,255,0.5);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   font-family: var(--font-body);
-  font-size: 1.25rem;
-  border: 1px solid rgba(255,255,255,0.2);
+  font-size: 1.3rem;
+  border: none;
   cursor: pointer;
   pointer-events: auto;
   z-index: 10;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 0 15px rgba(234, 0, 58, 0.35), 0 0 30px rgba(130, 0, 101, 0.2);
+  flex-shrink: 0;
+}
+.btn-nav::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: -3px; right: -3px; bottom: -3px;
+  background: linear-gradient(90deg, var(--color-core-accent), var(--color-fuchsia));
+  border-radius: 50%;
+  z-index: -1;
+  transition: filter 0.3s ease;
+}
+.btn-nav::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg);
+  border-radius: 50%;
+  z-index: -1;
 }
 .btn-nav:hover {
-  background: rgba(255,255,255,0.1);
-  color: #FFFFFF;
-  border-color: rgba(255,255,255,0.5);
+  transform: scale(1.1);
+  box-shadow: 0 0 25px rgba(234, 0, 58, 0.7), 0 0 50px rgba(130, 0, 101, 0.4);
+  color: var(--color-core-accent);
 }
+.btn-nav:hover::before {
+  filter: blur(10px);
+}
+
 @media (max-width: 767px) {
+  .deck-viewport {
+    flex-direction: column;
+    gap: 0;
+  }
+  .deck-viewport > .btn-nav {
+    display: none; /* hide flanking arrows on mobile */
+  }
+  .deck-nav-mobile {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 30px;
+  }
   .deck-wrapper {
-    margin-bottom: 60px;
+    max-width: 340px;
+    margin-bottom: 0;
   }
   .deck-container {
     max-width: 340px;
@@ -992,3 +1030,56 @@ section {
   transition: color 0.2s;
 }
 .nav-links a:hover { color: #EA003A; }
+
+/* =============================================
+   SECTION 4 — NUCLEAR OVERRIDE BLOCK
+   Last-in-file = highest cascade priority.
+   ============================================= */
+
+/* 1. Force flat borderless card — no borders, shadows, outlines, filters */
+.master-deck-section .deck-card,
+.master-deck-section .card-wrapper,
+.master-deck-section [class*="experience-card"] {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+/* 2. Kill the ::before gradient border ring on deck cards */
+.master-deck-section .deck-card::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* 3. Force the image container to be flat and borderless */
+.master-deck-section .deck-card img,
+.master-deck-section .card-wrapper img {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-radius: 24px !important;
+}
+
+/* 4. Nuke ALL inactive cards — zero rendering */
+.master-deck-section .deck-card:not(.active-card) {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: none !important;
+}
+
+/* 5. Force active card — flat border, rich ambient glow */
+.master-deck-section .deck-card.active-card {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 5 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0px 30px 100px -20px rgba(130, 0, 101, 0.4),
+                0px 15px 50px -10px rgba(234, 0, 58, 0.2) !important;
+    filter: none !important;
+    transform: none !important;
+}

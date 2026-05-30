@@ -171,7 +171,7 @@ const initLuxuryLanding = () => {
                     <div class="pill-container">
                         ${generatePills(exp.pills)}
                     </div>
-                    <button class="btn-glow card-cta">Request This Experience →</button>
+                    <button class="btn-glow card-cta">VIEW EXPERIENCE →</button>
                 </div>
             </div>
         `;
@@ -237,6 +237,12 @@ const initLuxuryLanding = () => {
             nextCard();
         });
     }
+
+    // Bind mobile navigation buttons
+    const btnPrevM = document.getElementById('btn-prev-m');
+    const btnNextM = document.getElementById('btn-next-m');
+    if (btnPrevM) btnPrevM.addEventListener('click', (e) => { e.stopPropagation(); prevCard(); });
+    if (btnNextM) btnNextM.addEventListener('click', (e) => { e.stopPropagation(); nextCard(); });
 
     // Swipe handling logic for touch screens
     let touchStartX = 0;
