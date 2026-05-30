@@ -143,10 +143,18 @@ const initLuxuryLanding = () => {
     experiences.forEach((exp, index) => {
         const card = document.createElement('div');
         card.classList.add('deck-card');
-        
-        // Initial state logic
-        if (index === 0) card.classList.add('front', 'active-card');
-        else card.classList.add('hidden');
+        // Flat layout initialization
+        if (index === 0) {
+            card.classList.add('deck-card', 'active-card');
+            card.style.display = 'block';
+            card.style.opacity = '1';
+            card.style.zIndex = '5';
+        } else {
+            card.classList.add('deck-card', 'hidden');
+            card.style.display = 'none';
+            card.style.opacity = '0';
+            card.style.zIndex = '1';
+        }
         
         card.dataset.index = index;
         // Fix for missing image fallback
@@ -159,11 +167,11 @@ const initLuxuryLanding = () => {
             </div>
             <div class="card-content">
                 <div class="card-bottom">
-                    <h3 class="card-title">${exp.title}</h3>
+                    <h3 class="card-title" style="font-weight: 700;">${exp.title}</h3>
                     <div class="pill-container">
                         ${generatePills(exp.pills)}
                     </div>
-                    <button class="btn-glow card-cta" style="width: 100%; display: flex; justify-content: center;">VIEW EXPERIENCE →</button>
+                    <button class="btn-glow card-cta">Request This Experience →</button>
                 </div>
             </div>
         `;
@@ -174,22 +182,23 @@ const initLuxuryLanding = () => {
     const cards = Array.from(document.querySelectorAll('.deck-card'));
 
     const updateDeck = () => {
-        const indicator = document.getElementById('deck-indicator');
-        if (indicator) {
-            indicator.textContent = `${String(currentIndex + 1).padStart(2, '0')} / ${String(experiences.length).padStart(2, '0')}`;
-        }
+        // Update all deck indicator pills inside each card to match the current count
+        document.querySelectorAll('.deck-index-pill').forEach(pill => {
+            pill.textContent = `${String(currentIndex + 1).padStart(2, '0')} / ${String(experiences.length).padStart(2, '0')}`;
+        });
         
         cards.forEach((card, index) => {
-            card.classList.remove('front', 'middle', 'back', 'hidden', 'active-card');
-            
-            // Calculate relative index based on current
-            let relativeIndex = index - currentIndex;
-            
-            // For continuous looping
-            if (relativeIndex === 0) {
-                card.classList.add('front', 'active-card');
+            card.className = 'deck-card'; // Reset classes
+            if (index === currentIndex) {
+                card.classList.add('active-card');
+                card.style.display = 'block';
+                card.style.opacity = '1';
+                card.style.zIndex = '5';
             } else {
                 card.classList.add('hidden');
+                card.style.display = 'none';
+                card.style.opacity = '0';
+                card.style.zIndex = '1';
             }
         });
     };
