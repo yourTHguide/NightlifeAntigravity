@@ -47,7 +47,7 @@
         .about-hero {
             text-align: center;
             margin: 0;
-            padding: 240px 20px 80px 20px;
+            padding: 240px 20px 160px 20px;
             background-color: #0D0D0D;
             background-image: radial-gradient(150% 120% at 75% 0%, #7A0040 0%, #35002F 40%, #0D0D0D 80%);
             width: 100%;
@@ -56,9 +56,17 @@
         .hero-title {
             font-family: var(--font-display);
             font-weight: 700;
-            font-size: 42px;
+            font-size: 56px;
             color: #FFFFFF;
             line-height: 1.1;
+        }
+        @media (max-width: 768px) {
+            .about-hero {
+                padding: 140px 20px 120px 20px;
+            }
+            .hero-title {
+                font-size: 44px;
+            }
         }
 
         /* Section 2 */
@@ -118,10 +126,14 @@
         }
         .split-media {
             flex: 1;
-            aspect-ratio: 5 / 7;
-            border-radius: 24px;
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 5 / 7 !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 24px !important;
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.08);
         }
         .split-media img {
             width: 100%;
@@ -305,8 +317,8 @@
     <!-- Content -->
     <!-- SECTION 1: THE HERO ACCESS HOOK -->
     <section class="about-hero">
-        <div class="logo-wrapper" style="margin-bottom: 20px;">
-            <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" class="hero-logo" style="margin: 0; width: 60px;">
+        <div class="logo-wrapper" style="margin-bottom: 24px;">
+            <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" class="hero-logo" style="margin: 0; width: 100px; max-width: 100%; height: auto; object-fit: contain;">
         </div>
         <div class="micro-label">OUR MANIFESTO & PASSION</div>
         <h1 class="hero-title">The Heart behind <br>the <span class="gradient-text italic-text">Night.</span></h1>
