@@ -49,9 +49,21 @@
             margin: 0;
             padding: 240px 20px 160px 20px;
             background-color: #0D0D0D;
-            background-image: radial-gradient(150% 120% at 75% 0%, #7A0040 0%, #35002F 40%, #0D0D0D 80%);
             width: 100%;
             box-sizing: border-box;
+            position: relative;
+        }
+        .about-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(150% 120% at 75% 0%, #7A0040 0%, #35002F 40%, #0D0D0D 80%);
+            z-index: 1 !important;
+            pointer-events: none !important;
+        }
+        .hero-content-matrix {
+            position: relative !important;
+            z-index: 10 !important;
         }
         .hero-title {
             font-family: var(--font-display);
@@ -317,11 +329,13 @@
     <!-- Content -->
     <!-- SECTION 1: THE HERO ACCESS HOOK -->
     <section class="about-hero">
-        <div class="logo-wrapper" style="margin-bottom: 24px;">
-            <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" class="hero-logo" style="margin: 0; width: 100px; max-width: 100%; height: auto; object-fit: contain;">
+        <div class="hero-content-matrix">
+            <div class="logo-wrapper" style="margin-bottom: 24px;">
+                <img src="assets/logo/BEST Nightlife Thailand LOGO.png" alt="BEST Nightlife Logo" class="hero-logo" style="margin: 0; width: 100px; max-width: 100%; height: auto; object-fit: contain; mix-blend-mode: normal !important; opacity: 1 !important;">
+            </div>
+            <div class="micro-label">OUR MANIFESTO & PASSION</div>
+            <h1 class="hero-title">The Heart behind <br>the <span class="gradient-text italic-text">Night.</span></h1>
         </div>
-        <div class="micro-label">OUR MANIFESTO & PASSION</div>
-        <h1 class="hero-title">The Heart behind <br>the <span class="gradient-text italic-text">Night.</span></h1>
     </section>
 
     <main class="page-content">
