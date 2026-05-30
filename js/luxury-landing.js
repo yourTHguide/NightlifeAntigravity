@@ -146,8 +146,6 @@ const initLuxuryLanding = () => {
         
         // Initial state logic
         if (index === 0) card.classList.add('front', 'active-card');
-        else if (index === 1) card.classList.add('middle');
-        else if (index === 2) card.classList.add('back');
         else card.classList.add('hidden');
         
         card.dataset.index = index;
@@ -180,16 +178,9 @@ const initLuxuryLanding = () => {
             // Calculate relative index based on current
             let relativeIndex = index - currentIndex;
             
-            // For continuous looping (optional, but requested simple cycle)
-            if (relativeIndex < 0) {
-                // Cards before the current one stay hidden in the stack
-                card.classList.add('hidden');
-            } else if (relativeIndex === 0) {
+            // For continuous looping
+            if (relativeIndex === 0) {
                 card.classList.add('front', 'active-card');
-            } else if (relativeIndex === 1) {
-                card.classList.add('middle');
-            } else if (relativeIndex === 2) {
-                card.classList.add('back');
             } else {
                 card.classList.add('hidden');
             }
