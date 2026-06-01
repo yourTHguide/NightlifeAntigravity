@@ -845,9 +845,16 @@ app.post('/api/vip-inquiry', async (req, res) => {
             }
             console.log(`👤 Guest ${guestId} updated with Private Inquiry tag`);
         } else {
+            const firstName = name.trim().split(/\s+/)[0] || 'Guest';
+            const cleanFirstName = firstName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '') || 'guest';
+            const phoneDigits = String(normalizedPhone || '').replace(/\D/g, '');
+            const last3 = phoneDigits.length >= 3 ? phoneDigits.slice(-3) : '000';
+            const customGuestId = `${cleanFirstName}-${last3}`;
+
             const { data: newGuest, error: insertError } = await supabase
                 .from('guests')
                 .insert({
+                    id: customGuestId,
                     first_name: name,
                     phone: normalizedPhone,
                     tags: [tagToAppend],
@@ -1129,9 +1136,16 @@ app.post('/api/contact', async (req, res) => {
             }
             console.log(`👤 Guest ${guestId} updated with Contact Us tag`);
         } else {
+            const firstName = name.trim().split(/\s+/)[0] || 'Guest';
+            const cleanFirstName = firstName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '') || 'guest';
+            const phoneDigits = String(normalizedPhone || '').replace(/\D/g, '');
+            const last3 = phoneDigits.length >= 3 ? phoneDigits.slice(-3) : '000';
+            const customGuestId = `${cleanFirstName}-${last3}`;
+
             const { data: newGuest, error: insertError } = await supabase
                 .from('guests')
                 .insert({
+                    id: customGuestId,
                     first_name: name,
                     phone: normalizedPhone,
                     tags: [tagToAppend],
