@@ -205,16 +205,16 @@
         <h1 class="contact-title">Connect with a Nightlife Director.</h1>
         <p class="contact-subtitle">Have a concept in mind? Let's build it. Our team is live on the ground.</p>
 
-        <div class="contact-form-wrapper">
+        <div class="contact-form-wrapper" id="contact-form-container">
             <div class="form-group">
                 <label>YOUR NAME</label>
-                <input type="text" class="form-input" placeholder="First name">
+                <input type="text" id="contact-name" class="form-input" placeholder="First name" required>
             </div>
             <div class="form-group">
                 <label>WHATSAPP NUMBER</label>
                 <div class="phone-wrapper">
                     <div class="phone-prefix">
-                        <select>
+                        <select id="contact-country-code">
                             <option value="+66">🇹🇭 +66</option>
                             <option value="+1">🇺🇸 +1</option>
                             <option value="+44">🇬🇧 +44</option>
@@ -223,14 +223,14 @@
                             <option value="+971">🇦🇪 +971</option>
                         </select>
                     </div>
-                    <input type="tel" class="form-input" placeholder="Your number">
+                    <input type="tel" id="contact-phone" class="form-input" placeholder="Your number" required>
                 </div>
             </div>
             <div class="form-group">
                 <label>TELL US THE VIBE YOU ARE AFTER</label>
-                <textarea class="form-input" rows="4" placeholder="Describe the occasion, desired venues, or custom requests..."></textarea>
+                <textarea id="contact-message" class="form-input" rows="4" placeholder="Describe the occasion, desired venues, or custom requests..."></textarea>
             </div>
-            <button class="btn-submit">Send Message &rarr;</button>
+            <button id="btn-contact-submit" class="btn-submit">Send Message &rarr;</button>
         </div>
 
         <div class="social-icons" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 50px;">
@@ -289,6 +289,63 @@
         hamburger.addEventListener('click', openNav);
         closeDrawer.addEventListener('click', closeNav);
         overlay.addEventListener('click', closeNav);
+
+        // AJAX Form Submission logic for Contact form
+        const btnContactSubmit = document.getElementById('btn-contact-submit');
+        if (btnContactSubmit) {
+            btnContactSubmit.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                const nameInput = document.getElementById('contact-name');
+                const countryCodeInput = document.getElementById('contact-country-code');
+                const phoneInput = document.getElementById('contact-phone');
+                const messageInput = document.getElementById('contact-message');
+
+                const name = nameInput.value.trim();
+                const whatsapp = countryCodeInput.value + phoneInput.value.trim();
+                const message = messageInput.value.trim();
+
+                if (!name || !phoneInput.value.trim()) {
+                    alert('Please fill out both your Name and WhatsApp number.');
+                    return;
+                }
+
+                const originalText = btnContactSubmit.innerHTML;
+                btnContactSubmit.disabled = true;
+                btnContactSubmit.innerHTML = "Sending Message... ⏳";
+
+                try {
+                    const response = await fetch('/api/contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name, whatsapp, message })
+                    });
+
+                    if (response.ok) {
+                        const formContainer = document.getElementById('contact-form-container');
+                        formContainer.innerHTML = `
+                            <div style="text-align: center; padding: 40px 0;">
+                                <div style="display: inline-block; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #EA003A, #820065); color: #000; font-size: 32px; line-height: 60px; text-align: center; margin-bottom: 20px; font-weight: bold;">✓</div>
+                                <h3 style="font-family: var(--font-display); font-size: 24px; color: #FFFFFF; margin-bottom: 10px;">Message Received</h3>
+                                <p style="font-family: var(--font-body); font-size: 14px; color: #AEAEB2; line-height: 1.6;">Your message has been sent successfully. A nightlife director will WhatsApp you within 2 hours.</p>
+                            </div>
+                        `;
+                    } else {
+                        const errData = await response.json().catch(() => ({}));
+                        alert(errData.error || 'Failed to send message. Please check your inputs and try again.');
+                        btnContactSubmit.disabled = false;
+                        btnContactSubmit.innerHTML = originalText;
+                    }
+                } catch (err) {
+                    console.error('Error submitting contact form:', err);
+                    alert('A network error occurred. Please try again.');
+                    btnContactSubmit.disabled = false;
+                    btnContactSubmit.innerHTML = originalText;
+                }
+            });
+        }
     </script>
 </body>
 </html>

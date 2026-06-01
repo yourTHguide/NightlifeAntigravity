@@ -571,10 +571,100 @@ const initLuxuryLanding = () => {
     });
     document.getElementById('btn-prev-4').addEventListener('click', () => { currentStep = 3; updateStepView(); });
     
-    document.getElementById('btn-submit').addEventListener('click', () => {
-        if (validateStep4()) {
-            currentStep = 5; // Success state
-            updateStepView();
+    document.getElementById('btn-submit').addEventListener('click', async () => {
+        if (!validateStep4()) return;
+
+        const btnSubmit = document.getElementById('btn-submit');
+        const originalText = btnSubmit.innerHTML;
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "Sending Inquiry... ⏳";
+
+        try {
+            // Step 1
+            const name = document.getElementById('guest-name').value.trim();
+            const countryCode = document.getElementById('country-code').value;
+            const guestPhone = document.getElementById('guest-phone').value.trim();
+            const whatsapp = countryCode + guestPhone;
+            const occasion = document.querySelector('.occasion-item.selected')?.dataset.value || 'Celebration';
+
+            // Step 2
+            const eventDateInput = document.getElementById('event-date').value;
+            const isFlexible = document.getElementById('flexible-date').checked;
+            const date = isFlexible ? 'flexible' : eventDateInput;
+
+            const groupSize = document.getElementById('pax-input').value.trim();
+            const preferredVibe = document.querySelector('.vibe-option.selected')?.innerText || '';
+
+            // Step 3 (Dynamic Content)
+            let step3Info = '';
+            if (occasion === 'Celebration') {
+                const requestedVenues = document.getElementById('requested-venues')?.value.trim();
+                const handleSelection = document.getElementById('handle-venue-selection')?.checked;
+                step3Info = `Requested Venues: ${requestedVenues || 'None'}${handleSelection ? ' (Please select for us)' : ''}`;
+                
+                // Additions
+                const additions = Array.from(document.querySelectorAll('#step-3 input[type="checkbox"]:checked'))
+                    .map(el => el.parentElement.innerText.trim());
+                if (additions.length) {
+                    step3Info += ` | Additions: ${additions.join(', ')}`;
+                }
+            } else if (occasion === 'Romantic' || occasion === 'Production') {
+                const settingOptions = Array.from(document.querySelectorAll('#dynamic-venue .venue-option.selected'))
+                    .map(el => el.innerText.trim());
+                if (settingOptions.length) {
+                    step3Info = `Venue Setting: ${settingOptions.join(', ')}`;
+                }
+                const enhancements = Array.from(document.querySelectorAll('#step-3 input[type="checkbox"]:checked'))
+                    .map(el => el.parentElement.innerText.trim());
+                if (enhancements.length) {
+                    step3Info += (step3Info ? ' | ' : '') + `Enhancements: ${enhancements.join(', ')}`;
+                }
+            } else {
+                const description = document.querySelector('#step-3 textarea')?.value.trim();
+                if (description) {
+                    step3Info = `Event Description: ${description}`;
+                }
+            }
+
+            // Step 4
+            const budgetRange = document.querySelector('.budget-option.selected')?.innerText || '';
+            const additionalNotes = document.getElementById('additional-notes').value.trim();
+
+            // Construct preferred_vibe text to capture everything from Step 2, 3, and 4
+            let vibeNotes = `Vibe: ${preferredVibe}`;
+            if (step3Info) vibeNotes += `\n${step3Info}`;
+            if (additionalNotes) vibeNotes += `\nNotes: ${additionalNotes}`;
+
+            const response = await fetch('/api/vip-inquiry', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name,
+                    whatsapp,
+                    date,
+                    groupSize,
+                    occasion,
+                    preferredVibe: vibeNotes,
+                    budgetRange,
+                    inquiryType: 'Private Inquiry'
+                })
+            });
+
+            if (response.ok) {
+                currentStep = 5; // Success state
+                updateStepView();
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                alert(errData.error || 'Failed to submit inquiry. Please check your connection and try again.');
+            }
+        } catch (err) {
+            console.error('Error submitting form:', err);
+            alert('A network error occurred. Please try again.');
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = originalText;
         }
     });
 
