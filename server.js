@@ -33,9 +33,16 @@ const rateLimit = require('express-rate-limit');
 console.log('💳 Initializing Stripe...');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 console.log('🔗 Initializing Supabase...');
+
+// Explicitly check for the Service Role Key. If it's missing, Kong will throw a 401 Unauthorized.
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is missing in the environment. Falling back to ANON_KEY. This will cause 401 or RLS errors on backend operations.');
+}
+
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    supabaseKey
 );
 
 const PRICES = {
@@ -99,6 +106,20 @@ async function sendEmail({ to, subject, html, text }) {
 }
 
 /**
+ * Safely escape user-supplied strings before interpolating into HTML templates
+ * to prevent Cross-Site Scripting (XSS).
+ */
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * Generates the premium HTML email template for guest booking confirmation.
  * Brand-aligned: dark base, pink accents, Montserrat/Inter fonts.
  */
@@ -140,7 +161,7 @@ function buildGuestConfirmationHTML({ firstName, eventDate, pax, totalPaid, book
 
                             <!-- Greeting -->
                             <p style="margin:0 0 16px;font-size:18px;color:#FFFFFF;font-weight:600;">
-                                Hey ${firstName} 👋
+                                Hey ${escapeHTML(firstName)} 👋
                             </p>
                             <p style="margin:0 0 28px;font-size:15px;color:#AEAEB2;line-height:1.6;">
                                 You're locked in. Your Bangkok Club Crawl booking is confirmed and paid.
@@ -153,28 +174,28 @@ function buildGuestConfirmationHTML({ firstName, eventDate, pax, totalPaid, book
                                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                             <tr>
                                                 <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Date</td>
-                                                <td align="right" style="padding:6px 0;font-size:15px;color:#FFFFFF;font-weight:600;">${eventDate}</td>
+                                                <td align="right" style="padding:6px 0;font-size:15px;color:#FFFFFF;font-weight:600;">${escapeHTML(eventDate)}</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:4px 0;"></td>
                                             </tr>
                                             <tr>
                                                 <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Guests</td>
-                                                <td align="right" style="padding:6px 0;font-size:15px;color:#FFFFFF;font-weight:600;">${pax} pax</td>
+                                                <td align="right" style="padding:6px 0;font-size:15px;color:#FFFFFF;font-weight:600;">${escapeHTML(pax)} pax</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:4px 0;"></td>
                                             </tr>
                                             <tr>
                                                 <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Total Paid</td>
-                                                <td align="right" style="padding:6px 0;font-size:15px;color:#D4AF37;font-weight:600;">฿${totalPaid.toLocaleString()}</td>
+                                                <td align="right" style="padding:6px 0;font-size:15px;color:#D4AF37;font-weight:600;">฿${Number(totalPaid).toLocaleString()}</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:4px 0;"></td>
                                             </tr>
                                             <tr>
                                                 <td style="padding:6px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.1em;">Ref</td>
-                                                <td align="right" style="padding:6px 0;font-size:12px;color:#8E8E93;font-family:monospace;">${bookingId.slice(0, 8).toUpperCase()}</td>
+                                                <td align="right" style="padding:6px 0;font-size:12px;color:#8E8E93;font-family:monospace;">${escapeHTML(bookingId).slice(0, 8).toUpperCase()}</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -945,7 +966,7 @@ app.post('/api/vip-inquiry', async (req, res) => {
                                 <tr>
                                     <td>
                                         <div style="display:inline-block;background:linear-gradient(135deg,#FF2D95,#FF6B9D);color:#FFFFFF;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:6px 16px;border-radius:9999px;">
-                                            ${leadType}
+                                            ${escapeHTML(leadType)}
                                         </div>
                                     </td>
                                 </tr>
@@ -958,7 +979,7 @@ app.post('/api/vip-inquiry', async (req, res) => {
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1C1C22;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,0.04);">
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;width:35%;">Guest Name</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${name}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(name)}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
@@ -966,8 +987,8 @@ app.post('/api/vip-inquiry', async (req, res) => {
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">WhatsApp</td>
                                     <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">
-                                        <a href="https://wa.me/${normalizedPhone.replace('+', '')}" style="color:#00E676;text-decoration:none;font-weight:700;">
-                                            ${normalizedPhone} 💬 (Click to Chat)
+                                        <a href="https://wa.me/${escapeHTML(normalizedPhone).replace('+', '')}" style="color:#00E676;text-decoration:none;font-weight:700;">
+                                            ${escapeHTML(normalizedPhone)} 💬 (Click to Chat)
                                         </a>
                                     </td>
                                 </tr>
@@ -976,35 +997,35 @@ app.post('/api/vip-inquiry', async (req, res) => {
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Event Date</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${date || 'TBD'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(date || 'TBD')}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Group Size</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${groupSize || 'TBD'} pax</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(groupSize || 'TBD')} pax</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Occasion</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${occasion || 'N/A'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(occasion || 'N/A')}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Preferred Vibe</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${preferredVibe || 'N/A'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(preferredVibe || 'N/A')}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Estimated Budget</td>
-                                    <td style="padding:8px 0;font-size:15px;color:#D4AF37;font-weight:700;">${budgetRange || 'TBD'}</td>
+                                    <td style="padding:8px 0;font-size:15px;color:#D4AF37;font-weight:700;">${escapeHTML(budgetRange || 'TBD')}</td>
                                 </tr>
                             </table>
 
@@ -1215,7 +1236,7 @@ app.post('/api/contact', async (req, res) => {
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1C1C22;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,0.04);">
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;width:30%;">Name</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${name}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(name)}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
@@ -1223,8 +1244,8 @@ app.post('/api/contact', async (req, res) => {
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">WhatsApp</td>
                                     <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">
-                                        <a href="https://wa.me/${normalizedPhone.replace('+', '')}" style="color:#00E676;text-decoration:none;font-weight:700;">
-                                            ${normalizedPhone} 💬 (Click to Chat)
+                                        <a href="https://wa.me/${escapeHTML(normalizedPhone).replace('+', '')}" style="color:#00E676;text-decoration:none;font-weight:700;">
+                                            ${escapeHTML(normalizedPhone)} 💬 (Click to Chat)
                                         </a>
                                     </td>
                                 </tr>
@@ -1233,7 +1254,7 @@ app.post('/api/contact', async (req, res) => {
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Message</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;line-height:1.5;white-space:pre-wrap;">${message || 'No message provided'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;line-height:1.5;white-space:pre-wrap;">${escapeHTML(message || 'No message provided')}</td>
                                 </tr>
                             </table>
                         </td>

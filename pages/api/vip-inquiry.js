@@ -20,6 +20,20 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+/**
+ * Safely escape user-supplied strings before interpolating into HTML templates
+ * to prevent Cross-Site Scripting (XSS).
+ */
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export default async function handler(req, res) {
   // Only allow secure POST submissions
   if (req.method !== 'POST') {
@@ -176,7 +190,7 @@ export default async function handler(req, res) {
                                 <tr>
                                     <td>
                                         <div style="display:inline-block;background:linear-gradient(135deg,#FF2D95,#FF6B9D);color:#FFFFFF;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:6px 16px;border-radius:9999px;">
-                                            ${leadType}
+                                            ${escapeHTML(leadType)}
                                         </div>
                                     </td>
                                 </tr>
@@ -189,7 +203,7 @@ export default async function handler(req, res) {
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1C1C22;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,0.04);">
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;width:35%;">Guest Name</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${name}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(name)}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
@@ -197,8 +211,8 @@ export default async function handler(req, res) {
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">WhatsApp</td>
                                     <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">
-                                        <a href="https://wa.me/${normalizedPhone.replace('+', '')}" style="color:#00E676;text-decoration:none;font-weight:700;">
-                                            ${normalizedPhone} 💬 (Click to Chat)
+                                        <a href="https://wa.me/${escapeHTML(normalizedPhone).replace('+', '')}" style="color:#00E676;text-decoration:none;font-weight:700;">
+                                            ${escapeHTML(normalizedPhone)} 💬 (Click to Chat)
                                         </a>
                                     </td>
                                 </tr>
@@ -207,35 +221,35 @@ export default async function handler(req, res) {
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Event Date</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${date || 'TBD'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(date || 'TBD')}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Group Size</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${groupSize || 'TBD'} pax</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(groupSize || 'TBD')} pax</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Occasion</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${occasion || 'N/A'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(occasion || 'N/A')}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Preferred Vibe</td>
-                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${preferredVibe || 'N/A'}</td>
+                                    <td style="padding:8px 0;font-size:14px;color:#FFFFFF;font-weight:600;">${escapeHTML(preferredVibe || 'N/A')}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2" style="border-bottom:1px solid rgba(255,255,255,0.06);"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:8px 0;font-size:13px;color:#8E8E93;text-transform:uppercase;letter-spacing:0.08em;">Estimated Budget</td>
-                                    <td style="padding:8px 0;font-size:15px;color:#D4AF37;font-weight:700;">${budgetRange || 'TBD'}</td>
+                                    <td style="padding:8px 0;font-size:15px;color:#D4AF37;font-weight:700;">${escapeHTML(budgetRange || 'TBD')}</td>
                                 </tr>
                             </table>
 
