@@ -1034,22 +1034,22 @@ app.post('/api/vip-inquiry', async (req, res) => {
 </html>
         `;
 
-        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-            emailTransporter.sendMail({
-                from: `"BEST Lead Alerts" <${process.env.EMAIL_USER}>`,
-                to: ADMIN_EMAIL,
-                subject: emailSubject,
-                html: emailHTML,
-                text: `New VIP Lead:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nExperience: ${leadType}\nDate: ${date || 'TBD'}\nPax: ${groupSize || 'TBD'}\nOccasion: ${occasion || 'N/A'}\nVibe: ${preferredVibe || 'N/A'}\nBudget: ${budgetRange || 'TBD'}`
-            })
-                .then((info) => {
-                    console.log(`📧 Native Express email alert successfully dispatched to ${ADMIN_EMAIL}: ${info.messageId}`);
-                })
-                .catch((emailErr) => {
-                    console.error('⚠️ Express Nodemailer email alert dispatch failed (non-blocking):', emailErr.message);
+        try {
+            if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+                const info = await emailTransporter.sendMail({
+                    from: `"BEST Lead Alerts" <${process.env.EMAIL_USER}>`,
+                    to: ADMIN_EMAIL,
+                    subject: emailSubject,
+                    html: emailHTML,
+                    text: `New VIP Lead:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nExperience: ${leadType}\nDate: ${date || 'TBD'}\nPax: ${groupSize || 'TBD'}\nOccasion: ${occasion || 'N/A'}\nVibe: ${preferredVibe || 'N/A'}\nBudget: ${budgetRange || 'TBD'}`
                 });
-        } else {
-            console.warn('⚠️ Express Nodemailer credentials not fully configured in env — skipping email alert');
+                console.log(`📧 Native Express email alert successfully dispatched to ${ADMIN_EMAIL}: ${info.messageId}`);
+            } else {
+                console.warn('⚠️ Express Nodemailer credentials not fully configured in env — skipping email alert');
+            }
+        } catch (emailErr) {
+            console.error('⚠️ Express Nodemailer email alert dispatch failed (non-blocking):', emailErr);
+            // We intentionally do not throw here, so the frontend still gets a 200 OK success response.
         }
 
         return res.status(200).json({
@@ -1246,20 +1246,20 @@ app.post('/api/contact', async (req, res) => {
 </html>
         `;
 
-        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-            emailTransporter.sendMail({
-                from: `"BEST Lead Alerts" <${process.env.EMAIL_USER}>`,
-                to: ADMIN_EMAIL,
-                subject: emailSubject,
-                html: emailHTML,
-                text: `New Contact Message:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nMessage: ${message || 'No message provided'}`
-            })
-                .then((info) => {
-                    console.log(`📧 Contact email alert dispatched to ${ADMIN_EMAIL}: ${info.messageId}`);
-                })
-                .catch((emailErr) => {
-                    console.error('⚠️ Contact email alert dispatch failed:', emailErr.message);
+        try {
+            if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+                const info = await emailTransporter.sendMail({
+                    from: `"BEST Lead Alerts" <${process.env.EMAIL_USER}>`,
+                    to: ADMIN_EMAIL,
+                    subject: emailSubject,
+                    html: emailHTML,
+                    text: `New Contact Message:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nMessage: ${message || 'No message provided'}`
                 });
+                console.log(`📧 Contact email alert dispatched to ${ADMIN_EMAIL}: ${info.messageId}`);
+            }
+        } catch (emailErr) {
+            console.error('⚠️ Contact email alert dispatch failed:', emailErr);
+            // Non-blocking: we continue and return 200 OK
         }
 
         return res.status(200).json({

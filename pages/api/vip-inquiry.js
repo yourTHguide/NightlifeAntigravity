@@ -266,22 +266,22 @@ export default async function handler(req, res) {
     `;
 
     // Dispatch email asynchronously so the client request is never slowed down
-    if (emailUser && emailPass) {
-      transporter.sendMail({
-        from: `"BEST Lead Alerts" <${emailUser}>`,
-        to: adminEmail,
-        subject: emailSubject,
-        html: emailHTML,
-        text: `New VIP Lead:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nExperience: ${leadType}\nDate: ${date || 'TBD'}\nPax: ${groupSize || 'TBD'}\nOccasion: ${occasion || 'N/A'}\nVibe: ${preferredVibe || 'N/A'}\nBudget: ${budgetRange || 'TBD'}`
-      })
-        .then((info) => {
-          console.log(`📧 Native email alert successfully dispatched to ${adminEmail}: ${info.messageId}`);
-        })
-        .catch((emailErr) => {
-          console.error('⚠️ Nodemailer email alert dispatch failed (non-blocking):', emailErr.message);
+    try {
+      if (emailUser && emailPass) {
+        const info = await transporter.sendMail({
+          from: `"BEST Lead Alerts" <${emailUser}>`,
+          to: adminEmail,
+          subject: emailSubject,
+          html: emailHTML,
+          text: `New VIP Lead:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nExperience: ${leadType}\nDate: ${date || 'TBD'}\nPax: ${groupSize || 'TBD'}\nOccasion: ${occasion || 'N/A'}\nVibe: ${preferredVibe || 'N/A'}\nBudget: ${budgetRange || 'TBD'}`
         });
-    } else {
-      console.warn('⚠️ Nodemailer credentials not fully configured in env — skipping email alert');
+        console.log(`📧 Native email alert successfully dispatched to ${adminEmail}: ${info.messageId}`);
+      } else {
+        console.warn('⚠️ Nodemailer credentials not fully configured in env — skipping email alert');
+      }
+    } catch (emailErr) {
+      console.error('⚠️ Nodemailer email alert dispatch failed (non-blocking):', emailErr);
+      // We intentionally do not throw here, so the frontend still gets a 200 OK success response.
     }
 
     // 6. Return standard response
