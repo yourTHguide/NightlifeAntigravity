@@ -24,7 +24,7 @@ const cors = require('cors');
 const path = require('path');
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 
@@ -55,15 +55,8 @@ const PRICES = {
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || `http://localhost:${PORT}`;
 
-// ——— Email Config (Gmail SMTP via Nodemailer) ———
-// ——— Email Config (Gmail SMTP via Nodemailer) ———
-const emailTransporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD
-    }
-});
+// ——— Email Config (Resend API) ———
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'bestnightlifethailand@gmail.com';
 
@@ -88,19 +81,42 @@ const checkoutLimiter = rateLimit({
  * Sends an email using the configured Gmail transporter.
  * Non-blocking — errors are logged but never crash the server.
  */
-async function sendEmail({ to, subject, html, text }) {
+async function sendEmail({ from, to, subject, html, text }) {
     try {
-        const info = await emailTransporter.sendMail({
-            from: `"Bangkok Club Crawl" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            html,
-            text
+        const sender = from || 'Bangkok Club Crawl <onboarding@resend.dev>';
+        let targetTo = to;
+        let modifiedSubject = subject;
+        let modifiedHtml = html;
+        let modifiedText = text;
+
+        // Resend testing tier logic: redirect non-admin destination to ADMIN_EMAIL
+        if (to.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+            targetTo = ADMIN_EMAIL;
+            modifiedSubject = `[Test - to: ${to}] ${subject}`;
+            if (html) {
+                modifiedHtml = `<p style="color:#FF2D95; font-weight:bold; background:rgba(255,45,149,0.1); padding:10px; border-radius:5px;">⚠️ Resend Testing Tier: This email was originally addressed to: <strong>${to}</strong></p>${html}`;
+            }
+            if (text) {
+                modifiedText = `⚠️ Resend Testing Tier: This email was originally addressed to: ${to}\n\n${text}`;
+            }
+        }
+
+        const response = await resend.emails.send({
+            from: sender,
+            to: targetTo,
+            subject: modifiedSubject,
+            html: modifiedHtml,
+            text: modifiedText
         });
-        console.log(`📧 Email sent to ${to}: ${info.messageId}`);
+
+        if (response.error) {
+            throw response.error;
+        }
+
+        console.log(`📧 Email sent via Resend to ${targetTo} (Original: ${to}): ${response.data.id}`);
         return true;
     } catch (err) {
-        console.error(`⚠️ Email to ${to} failed (non-blocking):`, err.message);
+        console.error(`⚠️ Email to ${to} failed via Resend (non-blocking):`, err.message || err);
         return false;
     }
 }
@@ -680,7 +696,7 @@ app.post('/api/stripe-webhook', async (req, res) => {
                 }
 
                 // ——— 7A. Send GUEST CONFIRMATION EMAIL ———
-                if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+                if (process.env.RESEND_API_KEY) {
                     console.log(`📧 Preparing guest confirmation email for: ${guestData.email}`);
                     const confirmationHTML = buildGuestConfirmationHTML({
                         firstName: guestData.first_name,
@@ -1056,20 +1072,20 @@ app.post('/api/vip-inquiry', async (req, res) => {
         `;
 
         try {
-            if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-                const info = await emailTransporter.sendMail({
-                    from: `"BEST Lead Alerts" <${process.env.EMAIL_USER}>`,
+            if (process.env.RESEND_API_KEY) {
+                const emailOk = await sendEmail({
+                    from: 'BEST Lead Alerts <onboarding@resend.dev>',
                     to: ADMIN_EMAIL,
                     subject: emailSubject,
                     html: emailHTML,
                     text: `New VIP Lead:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nExperience: ${leadType}\nDate: ${date || 'TBD'}\nPax: ${groupSize || 'TBD'}\nOccasion: ${occasion || 'N/A'}\nVibe: ${preferredVibe || 'N/A'}\nBudget: ${budgetRange || 'TBD'}`
                 });
-                console.log(`📧 Native Express email alert successfully dispatched to ${ADMIN_EMAIL}: ${info.messageId}`);
+                console.log(emailOk ? `📧 Native Express email alert successfully dispatched to ${ADMIN_EMAIL}` : `❌ Native Express email alert FAILED`);
             } else {
-                console.warn('⚠️ Express Nodemailer credentials not fully configured in env — skipping email alert');
+                console.warn('⚠️ Express Resend API key not configured in env — skipping email alert');
             }
         } catch (emailErr) {
-            console.error('⚠️ Express Nodemailer email alert dispatch failed (non-blocking):', emailErr);
+            console.error('⚠️ Express Resend email alert dispatch failed (non-blocking):', emailErr);
             // We intentionally do not throw here, so the frontend still gets a 200 OK success response.
         }
 
@@ -1268,15 +1284,15 @@ app.post('/api/contact', async (req, res) => {
         `;
 
         try {
-            if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-                const info = await emailTransporter.sendMail({
-                    from: `"BEST Lead Alerts" <${process.env.EMAIL_USER}>`,
+            if (process.env.RESEND_API_KEY) {
+                const emailOk = await sendEmail({
+                    from: 'BEST Lead Alerts <onboarding@resend.dev>',
                     to: ADMIN_EMAIL,
                     subject: emailSubject,
                     html: emailHTML,
                     text: `New Contact Message:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nMessage: ${message || 'No message provided'}`
                 });
-                console.log(`📧 Contact email alert dispatched to ${ADMIN_EMAIL}: ${info.messageId}`);
+                console.log(emailOk ? `📧 Contact email alert successfully dispatched to ${ADMIN_EMAIL}` : `❌ Contact email alert FAILED`);
             }
         } catch (emailErr) {
             console.error('⚠️ Contact email alert dispatch failed:', emailErr);
@@ -1670,7 +1686,7 @@ app.post('/api/webhooks/bokun', async (req, res) => {
         console.log('═══════════════════════════════════════');
 
         // ——— 13. Admin Notification Email ———
-        if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+        if (process.env.RESEND_API_KEY) {
             const adminText = [
                 `📥 New OTA Booking (Bokun)`,
                 ``,
@@ -1722,7 +1738,7 @@ app.post('/api/webhooks/bokun', async (req, res) => {
 // ——— Start Server (local dev only — Vercel uses module.exports) ———
 if (require.main === module) {
     app.listen(PORT, () => {
-        const emailReady = process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD && process.env.EMAIL_APP_PASSWORD !== 'YOUR_16_CHAR_APP_PASSWORD_HERE';
+        const emailReady = process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_your_api_key_here';
         console.log(`
 ╔══════════════════════════════════════════════════╗
 ║  🌃 Bangkok Club Crawl — Booking Engine          ║
@@ -1735,10 +1751,9 @@ if (require.main === module) {
 ║    POST /api/omnichannel-chat                    ║
 ║    GET  /api/booking-status/:id                  ║
 ║                                                  ║
-║  Email (Nodemailer):                             ║
-║    Sender:  ${emailReady ? process.env.EMAIL_USER : '⏳ Not configured'}  ║
+║  Email (Resend):                                 ║
 ║    Admin:   ${emailReady ? ADMIN_EMAIL : '⏳ Not configured'}  ║
-║    Status:  ${emailReady ? '✅ Ready' : '⏳ Paste App Password in .env'}              ║
+║    Status:  ${emailReady ? '✅ Ready' : '⏳ Paste Resend API Key in .env'}            ║
 ╚══════════════════════════════════════════════════╝
         `);
     });
@@ -3355,7 +3370,7 @@ app.post('/api/omnichannel-chat', async (req, res) => {
         console.log(`💬 Response generated | Stage: ${session.stage} | Escalated: ${result.escalated}`);
 
         // ——— 6. Send Admin Notification on Escalation ———
-        if (result.escalated && process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+        if (result.escalated && process.env.RESEND_API_KEY) {
             await sendEmail({
                 to: ADMIN_EMAIL,
                 subject: `🚨 Escalation: ${channel} message from ${userKey.value}`,

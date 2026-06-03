@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 // Initialize Supabase using service role to bypass RLS for guest upserts
 const supabase = createClient(
@@ -7,18 +7,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-// Configure Nodemailer transporter (Gmail SMTP)
-const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-const emailPass = process.env.EMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+const resendApiKey = process.env.RESEND_API_KEY;
 const adminEmail = process.env.ADMIN_EMAIL || 'bestnightlifethailand@gmail.com';
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: emailUser,
-    pass: emailPass
-  }
-});
+const resend = new Resend(resendApiKey);
 
 /**
  * Safely escape user-supplied strings before interpolating into HTML templates
@@ -281,20 +272,23 @@ export default async function handler(req, res) {
 
     // Dispatch email asynchronously so the client request is never slowed down
     try {
-      if (emailUser && emailPass) {
-        const info = await transporter.sendMail({
-          from: `"BEST Lead Alerts" <${emailUser}>`,
+      if (resendApiKey) {
+        const response = await resend.emails.send({
+          from: 'BEST Lead Alerts <onboarding@resend.dev>',
           to: adminEmail,
           subject: emailSubject,
           html: emailHTML,
           text: `New VIP Lead:\nName: ${name}\nWhatsApp: ${normalizedPhone}\nExperience: ${leadType}\nDate: ${date || 'TBD'}\nPax: ${groupSize || 'TBD'}\nOccasion: ${occasion || 'N/A'}\nVibe: ${preferredVibe || 'N/A'}\nBudget: ${budgetRange || 'TBD'}`
         });
-        console.log(`📧 Native email alert successfully dispatched to ${adminEmail}: ${info.messageId}`);
+        if (response.error) {
+          throw response.error;
+        }
+        console.log(`📧 Resend email alert successfully dispatched to ${adminEmail}: ${response.data.id}`);
       } else {
-        console.warn('⚠️ Nodemailer credentials not fully configured in env — skipping email alert');
+        console.warn('⚠️ Resend API key not configured in env — skipping email alert');
       }
     } catch (emailErr) {
-      console.error('⚠️ Nodemailer email alert dispatch failed (non-blocking):', emailErr);
+      console.error('⚠️ Resend email alert dispatch failed (non-blocking):', emailErr.message || emailErr);
       // We intentionally do not throw here, so the frontend still gets a 200 OK success response.
     }
 
