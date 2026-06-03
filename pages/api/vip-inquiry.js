@@ -33,11 +33,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { name, whatsapp, date, groupSize, occasion, preferredVibe, budgetRange, inquiryType } = req.body;
+    const { name, whatsapp, email, date, groupSize, occasion, preferredVibe, budgetRange, inquiryType } = req.body;
 
     // 1. Validate mandatory fields
-    if (!name || !whatsapp) {
-      return res.status(400).json({ error: 'Name and WhatsApp number are required.' });
+    if (!name || (!whatsapp && !email)) {
+      return res.status(400).json({ error: 'Name and either a WhatsApp number or Email are required.' });
     }
 
     // 2. Normalize WhatsApp number to E.164 (Rule 3)
@@ -55,16 +55,33 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!normalizedPhone) {
-      return res.status(400).json({ error: 'Please enter a valid WhatsApp phone number (e.g. +66812345678 or 0812345678).' });
+    if (!normalizedPhone && !email) {
+      return res.status(400).json({ error: 'Please enter a valid WhatsApp phone number (e.g. +66812345678 or 0812345678) or an email address.' });
     }
 
     // 3. Upsert Guest Profile (Rule 3: One Guest, One Profile)
-    const { data: existingGuest, error: fetchError } = await supabase
-      .from('guests')
-      .select('id, tags')
-      .eq('phone', normalizedPhone)
-      .maybeSingle();
+    let existingGuest = null;
+    let fetchError = null;
+
+    if (normalizedPhone) {
+      const { data, error } = await supabase
+        .from('guests')
+        .select('id, tags')
+        .eq('phone', normalizedPhone)
+        .maybeSingle();
+      existingGuest = data;
+      fetchError = error;
+    }
+    
+    if (!existingGuest && email && !fetchError) {
+      const { data, error } = await supabase
+        .from('guests')
+        .select('id, tags')
+        .eq('email', email)
+        .maybeSingle();
+      existingGuest = data;
+      fetchError = error;
+    }
 
     if (fetchError) {
       console.error('❌ Supabase fetch guest error:', fetchError);
@@ -86,6 +103,8 @@ export default async function handler(req, res) {
         .from('guests')
         .update({
           first_name: name,
+          email: email || null,
+          phone: normalizedPhone || null,
           tags: tags,
           updated_at: new Date().toISOString()
         })
@@ -109,7 +128,8 @@ export default async function handler(req, res) {
         .insert({
           id: customGuestId,
           first_name: name,
-          phone: normalizedPhone,
+          phone: normalizedPhone || null,
+          email: email || null,
           tags: [tagToAppend],
           source: 'website_inquiry',
           created_at: new Date().toISOString(),

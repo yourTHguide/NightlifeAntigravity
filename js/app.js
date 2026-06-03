@@ -466,17 +466,17 @@ function initHostsSection() {
                 <div class="host-info-brief">
                     <h3 class="host-name">${host.name} <span class="verified-icon">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2L15 4.5L18.5 4L20 7.5L23 9.5L21.5 13L23 16.5L20 18.5L18.5 22L15 21.5L12 24L9 21.5L5.5 22L4 18.5L1 16.5L2.5 13L1 9.5L4 7.5L5.5 4L9 4.5L12 2Z" fill="#D4AF37"/>
+                            <path d="M12 2L15 4.5L18.5 4L20 7.5L23 9.5L21.5 13L23 16.5L20 18.5L18.5 22L15 21.5L12 24L9 21.5L5.5 22L4 18.5L1 16.5L2.5 13L1 9.5L4 7.5L5.5 4L9 4.5L12 2Z" fill="#EA003A"/>
                             <path d="M10 16L6 12L7.4 10.6L10 13.2L16.6 6.6L18 8L10 16Z" fill="#111114"/>
                         </svg>
                     </span></h3>
                     <span class="role-capsule">${host.role}</span>
                     <p class="host-short-desc">"${host.shortDesc}"</p>
-                    <p class="host-stat-line"><span style="color:#D4AF37;">★</span> ${host.stats}</p>
+                    <p class="host-stat-line"><span class="text-gradient-gold">★</span> ${host.stats}</p>
                 </div>
                 <div class="host-expand-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9L12 15L18 9" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M6 9L12 15L18 9" stroke="#EA003A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
             </div>

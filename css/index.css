@@ -9,11 +9,11 @@ input, textarea, select {
 
 :root {
     /* === PRIMARY PALETTE === */
-    --color-primary: #FF2D95;
+    --color-primary: #EA003A;
     /* Electric Pink — CTAs, highlights, active states ONLY */
-    --color-primary-glow: rgba(255, 45, 149, 0.4);
+    --color-primary-glow: rgba(234, 0, 58, 0.4);
     /* Glow effect for buttons/accents */
-    --color-primary-gradient: linear-gradient(135deg, #FF2D95, #FF6B9D);
+    --color-primary-gradient: #EA003A;
     /* CTA buttons */
 
     /* === DARK BASE === */
@@ -39,10 +39,10 @@ input, textarea, select {
     /* Premium accents, icons */
     --color-rose-gold-gradient: linear-gradient(135deg, #B76E79, #E8C4A0);
     /* Icon highlights */
-    --color-gold: #D4AF37;
+    --color-gold: #EA003A;
     /* Price display, premium indicators */
-    --color-gold-brushed: linear-gradient(135deg, #CF995F 0%, #F1D18A 25%, #E1B366 50%, #F1D18A 75%, #CF995F 100%);
-    --color-gold-glow: rgba(212, 175, 55, 0.3);
+    --color-gold-brushed: linear-gradient(to right, #EA003A, #820065, #600061);
+    --color-gold-glow: rgba(234, 0, 58, 0.3);
 
     /* === SEMANTIC === */
     --color-success: #30D158;
@@ -182,7 +182,7 @@ img {
 
 .text-gradient-pink {
     color: var(--color-primary);
-    text-shadow: 0 0 10px rgba(255, 45, 149, 0.4);
+    text-shadow: 0 0 10px rgba(234, 0, 58, 0.4);
 }
 
 .text-gradient-gold {
@@ -210,14 +210,14 @@ img {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #FF4B9E, #FF2D95);
+    background: var(--color-primary);
     color: var(--color-white);
-    box-shadow: 0 0 10px rgba(255, 45, 149, 0.4);
+    box-shadow: 0 0 10px rgba(234, 0, 58, 0.4);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(255, 45, 149, 0.65);
+    box-shadow: 0 0 20px rgba(234, 0, 58, 0.65);
 }
 
 .btn-outline {
@@ -420,7 +420,7 @@ section {
 .night-card:hover {
     transform: translateY(-8px);
     border-color: var(--color-primary);
-    box-shadow: var(--shadow-elevated), 0 0 20px rgba(255, 45, 149, 0.3);
+    box-shadow: var(--shadow-elevated), 0 0 20px rgba(234, 0, 58, 0.3);
 }
 
 .night-card-overlay {
@@ -446,7 +446,10 @@ section {
 
 .night-card-title {
     font-size: var(--text-h3);
-    color: var(--color-gold);
+    background: var(--color-gold-brushed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin-bottom: var(--space-xs);
     font-family: var(--font-headline);
     font-weight: var(--weight-bold);
@@ -517,7 +520,7 @@ section {
 
 .audience-icon {
     font-size: 1.5rem;
-    background: rgba(255, 45, 149, 0.1);
+    background: rgba(234, 0, 58, 0.1);
     width: 48px;
     height: 48px;
     display: flex;
@@ -635,7 +638,10 @@ section {
 
 .expansion-hero-subtitle {
     font-size: var(--text-small);
-    color: var(--color-gold);
+    background: var(--color-gold-brushed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     font-weight: var(--weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.1em;

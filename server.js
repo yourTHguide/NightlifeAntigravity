@@ -352,13 +352,15 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
         const { guest, event_date, pax, promo_code, source_channel } = req.body;
 
         // ——— 1. Validate Input ———
-        if (!guest?.first_name || !guest?.phone || !guest?.email) {
-            return res.status(400).json({ error: 'Missing guest details (name, phone, email required)' });
+        if (!guest?.first_name || (!guest?.phone && !guest?.email)) {
+            return res.status(400).json({ error: 'Missing guest details: A name and at least a phone number or email are required.' });
         }
-        // Validate email format (Stripe rejects invalid emails)
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(guest.email)) {
-            return res.status(400).json({ error: 'Please enter a valid email address' });
+        // Validate email format if provided (Stripe rejects invalid emails)
+        if (guest?.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(guest.email)) {
+                return res.status(400).json({ error: 'Please enter a valid email address' });
+            }
         }
         if (!event_date) {
             return res.status(400).json({ error: 'Missing event date' });
@@ -409,13 +411,24 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
 
         const totalAmount = Math.max(0, subtotal - discountAmount);
 
-        // ——— 4. Upsert Guest (match by phone) ———
-        // Try to find existing guest by phone
-        const { data: existingGuest } = await supabase
-            .from('guests')
-            .select('id, tags')
-            .eq('phone', guest.phone)
-            .single();
+        // ——— 4. Upsert Guest (match by phone or email) ———
+        let existingGuest = null;
+        if (guest.phone) {
+            const { data } = await supabase
+                .from('guests')
+                .select('id, tags')
+                .eq('phone', guest.phone)
+                .maybeSingle();
+            existingGuest = data;
+        }
+        if (!existingGuest && guest.email) {
+            const { data } = await supabase
+                .from('guests')
+                .select('id, tags')
+                .eq('email', guest.email)
+                .maybeSingle();
+            existingGuest = data;
+        }
 
         let guestId;
         let currentTags = [];
@@ -428,7 +441,8 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
                 .from('guests')
                 .update({
                     first_name: guest.first_name,
-                    email: guest.email,
+                    email: guest.email || null,
+                    phone: guest.phone || null,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', guestId);
@@ -438,8 +452,8 @@ app.post('/api/create-checkout', checkoutLimiter, async (req, res) => {
                 .from('guests')
                 .insert({
                     first_name: guest.first_name,
-                    email: guest.email,
-                    phone: guest.phone,
+                    email: guest.email || null,
+                    phone: guest.phone || null,
                     tags: ['Interested'],
                     source: source_channel || 'website'
                 })

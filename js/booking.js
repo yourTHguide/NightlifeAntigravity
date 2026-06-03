@@ -352,8 +352,8 @@ function initBookingWizard() {
             const whatsapp = document.getElementById('guest-whatsapp').value.trim();
             const eventDate = document.getElementById('selected-date').value;
 
-            if (!name || !email || !whatsapp || !eventDate) {
-                alert('Please fill in all details.');
+            if (!name || (!email && !whatsapp) || !eventDate) {
+                alert('Please provide your name, an event date, and at least an email or WhatsApp number.');
                 return;
             }
 
@@ -408,8 +408,8 @@ function initBookingWizard() {
             const name = document.getElementById('guest-name').value;
             const email = document.getElementById('guest-email').value;
             const whatsapp = document.getElementById('guest-whatsapp').value;
-            if (!name || !email || !whatsapp) {
-                alert('Please complete all details.');
+            if (!name || (!email && !whatsapp)) {
+                alert('Please provide your name and at least an email or WhatsApp number.');
                 return false;
             }
         }
