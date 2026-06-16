@@ -278,6 +278,7 @@ function buildAdminNotificationText({ firstName, email, phone, eventDate, pax, p
 }
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ——— Middleware ———
 // Note: Vercel bodyParser is disabled (see vercelConfig).
