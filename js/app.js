@@ -632,3 +632,14 @@ function initEventListeners() {
     }
 }
 
+const headerEl = document.querySelector('.header');
+if (headerEl) {
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 80) {
+      headerEl.classList.add('nav-scrolled');
+    } else {
+      headerEl.classList.remove('nav-scrolled');
+    }
+  });
+}
+

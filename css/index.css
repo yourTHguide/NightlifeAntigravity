@@ -1873,3 +1873,69 @@ section {
     cubic-bezier(0.2, 0.8, 0.2, 1) 
     0.3s forwards;
 }
+
+/* === ROUND 2: NAV REDESIGN === */
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;
+  background: transparent;
+  transition: background 0.3s ease,
+              backdrop-filter 0.3s ease;
+}
+
+.header.nav-scrolled {
+  background: rgba(26,0,21,0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.nav-logo-link {
+  text-decoration: none;
+}
+
+.nav-logo-box {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.08em;
+  border: 2px solid #FFFFFF;
+  padding: 4px 10px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.nav-links-right {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.nav-link-item {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #FFFFFF;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.nav-link-item:hover {
+  opacity: 0.7;
+}
+
+.nav-book {
+  color: #EA003A;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .nav-links-right {
+    display: none;
+  }
+}
