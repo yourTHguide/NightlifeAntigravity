@@ -115,14 +115,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* No white backgrounds anywhere */
-section {
-  background-color: var(--color-bg-primary);
-}
-
-section:nth-child(even) {
-  background-color: var(--color-bg-secondary);
-}
 
 /* Section padding */
 .section-padding {
