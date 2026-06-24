@@ -612,9 +612,9 @@ function initEventListeners() {
     });
 
     // Header scroll background effect
-    window.addEventListener('scroll', () => {
-        const header = document.querySelector('.header');
-        if (header) {
+    const header = document.querySelector('.header');
+    if (header) {
+        window.addEventListener('scroll', () => {
             if (window.scrollY > 50) {
                 header.style.backgroundColor = 'rgba(17, 17, 20, 0.95)';
                 header.style.backdropFilter = 'blur(10px)';
@@ -624,7 +624,7 @@ function initEventListeners() {
                 header.style.backdropFilter = 'none';
                 header.style.boxShadow = 'none';
             }
-        }
-    });
+        });
+    }
 }
 
