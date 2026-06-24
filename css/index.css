@@ -2068,6 +2068,9 @@ section {
 
 .hero-ota-strip {
   margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .hero-ota-label {
@@ -2079,11 +2082,14 @@ section {
   text-transform: uppercase;
   color: rgba(255,255,255,0.35);
   margin-bottom: 10px;
+  text-align: center;
 }
 
 .hero-ota-list {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 20px;
 }
 
