@@ -1977,7 +1977,7 @@ section {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: url('assets/images/hero-bg.jpg');
+  background-image: url('../assets/images/hero-bg.jpg');
   background-size: cover;
   background-position: center center;
   background-color: #2F002F;
