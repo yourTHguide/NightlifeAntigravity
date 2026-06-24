@@ -8,24 +8,34 @@ input, textarea, select {
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;600&family=Poppins:wght@400;600&family=Sora:wght@600;700&display=swap');
 
 :root {
-  /* Colors */
-  --color-bg-primary: #2F002F;
-  --color-bg-secondary: #1A0015;
-  --color-accent-crimson: #EA003A;
-  --color-accent-fuchsia: #820065;
-  --color-accent-plum: #600061;
-  --color-accent-mardi: #41002A;
-  --color-white: #FFFFFF;
-  --color-text-secondary: rgba(255,255,255,0.60);
-  --color-text-muted: rgba(255,255,255,0.35);
-  --color-card-bg: rgba(255,255,255,0.04);
-  --color-card-border: 1px solid rgba(255,255,255,0.08);
-
-  /* Fonts */
-  --font-display: 'Cormorant Garamond', serif;
+  /* === ORIGINAL VARIABLES — DO NOT REMOVE === */
+  --font-headline: 'Sora', 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
+  --font-accent: 'Montserrat', sans-serif;
 
-  /* Spacing */
+  --color-bg: #0A0A0F;
+  --color-bg-secondary: #111114;
+  --color-surface: #1A1A1F;
+  --color-surface-2: #222228;
+  --color-border: rgba(255,255,255,0.06);
+  --color-border-strong: rgba(255,255,255,0.12);
+  --color-white: #FFFFFF;
+  --color-gray-light: #8E8E93;
+  --color-gray-mid: #636366;
+  --color-gray-dark: #3A3A3C;
+  --color-gold: #D4AF37;
+  --color-gold-light: #F0D060;
+  --color-gold-muted: rgba(212,175,55,0.15);
+  --color-crimson: #EA003A;
+  --color-crimson-glow: rgba(234,0,58,0.15);
+
+  --text-hero: clamp(2.8rem, 8vw, 5.5rem);
+  --text-h2: clamp(1.8rem, 4vw, 2.8rem);
+  --text-h3: clamp(1.3rem, 2.5vw, 1.8rem);
+  --text-body: 1rem;
+  --text-sm: 0.875rem;
+  --text-xs: 0.75rem;
+
   --space-xs: 8px;
   --space-sm: 16px;
   --space-md: 24px;
@@ -33,13 +43,32 @@ input, textarea, select {
   --space-xl: 60px;
   --space-2xl: 80px;
 
-  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
   --radius-card: 12px;
   --radius-button: 6px;
 
-  /* Transitions */
   --transition-base: 0.2s ease;
   --transition-smooth: 0.3s ease;
+  --transition-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* === NEW VARIABLES — REDESIGN === */
+  --color-bg-primary: #2F002F;
+  --color-accent-crimson: #EA003A;
+  --color-accent-fuchsia: #820065;
+  --color-accent-plum: #600061;
+  --color-accent-mardi: #41002A;
+  --color-text-secondary: rgba(255,255,255,0.60);
+  --color-text-muted: rgba(255,255,255,0.35);
+  --color-card-bg: rgba(255,255,255,0.04);
+  --color-card-border: 1px solid rgba(255,255,255,0.08);
+  --font-display: 'Cormorant Garamond', serif;
 }
 
 /* === RESET & BASE === */
