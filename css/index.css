@@ -8,123 +8,140 @@ input, textarea, select {
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;600&family=Poppins:wght@400;600&family=Sora:wght@600;700&display=swap');
 
 :root {
-    /* === ORIGINAL — PRIMARY PALETTE === */
+    /* === PRIMARY PALETTE === */
     --color-primary: #EA003A;
+    /* Electric Pink — CTAs, highlights, active states ONLY */
     --color-primary-glow: rgba(234, 0, 58, 0.4);
+    /* Glow effect for buttons/accents */
     --color-primary-gradient: #EA003A;
+    /* CTA buttons */
 
-    /* === ORIGINAL — DARK BASE === */
+    /* === DARK BASE === */
     --color-dark-base: #1C1C1E;
+    /* Primary background — hero, main sections */
     --color-dark-surface: #1C1C1E;
+    /* Cards, elevated surfaces, modals */
     --color-dark-elevated: #2C2C2E;
+    /* Hover states, active cards */
 
-    /* === ORIGINAL — NEUTRALS === */
+    /* === NEUTRALS === */
     --color-white: #FFFFFF;
+    /* Headlines, high-contrast text */
     --color-gray: #8E8E93;
+    /* Subtext, dividers, disabled states */
     --color-gray-light: #AEAEB2;
+    /* Secondary text */
     --color-border: rgba(255, 255, 255, 0.08);
+    /* Subtle card borders */
 
-    /* === ORIGINAL — ACCENT === */
+    /* === ACCENT === */
     --color-rose-gold: #B76E79;
+    /* Premium accents, icons */
     --color-rose-gold-gradient: linear-gradient(135deg, #B76E79, #E8C4A0);
+    /* Icon highlights */
     --color-gold: #EA003A;
+    /* Price display, premium indicators */
     --color-gold-brushed: linear-gradient(to right, #EA003A, #820065, #600061);
     --color-gold-glow: rgba(234, 0, 58, 0.3);
 
-    /* === ORIGINAL — SEMANTIC === */
+    /* === SEMANTIC === */
     --color-success: #30D158;
+    /* Payment success, confirmations */
     --color-error: #FF453A;
+    /* Errors, validation failures */
     --color-warning: #FFD60A;
+    /* Warnings, cautions */
 
-    /* === ORIGINAL — FONT FAMILIES === */
+    /* === FONT FAMILIES === */
     --font-headline: 'Montserrat', 'Sora', sans-serif;
     --font-body: 'Inter', 'Poppins', sans-serif;
 
-    /* === ORIGINAL — FONT SIZES === */
+    /* === FONT SIZES === */
     --text-hero: clamp(2.25rem, 5vw, 3rem);
+    /* 36-48px — Hero headline */
     --text-h2: clamp(1.5rem, 3vw, 2rem);
+    /* 24-32px — Section headers */
     --text-h3: clamp(1.125rem, 2vw, 1.375rem);
+    /* 18-22px — Card headers */
     --text-body: clamp(0.875rem, 1.5vw, 1rem);
+    /* 14-16px — Body text */
     --text-small: clamp(0.75rem, 1vw, 0.8125rem);
+    /* 12-13px — Captions */
     --text-label: 0.6875rem;
+    /* 11px — Uppercase labels */
 
-    /* === ORIGINAL — FONT WEIGHTS === */
+    /* === FONT WEIGHTS === */
     --weight-bold: 700;
+    /* Headlines */
     --weight-semibold: 600;
+    /* Sub-headers, CTAs */
     --weight-regular: 400;
+    /* Body text */
 
-    /* === ORIGINAL — SPACING === */
-    --space-xs: 0.5rem;
-    --space-sm: 1rem;
-    --space-md: 1.5rem;
-    --space-lg: 2.5rem;
-    --space-xl: 4rem;
-    --space-2xl: 6rem;
+    /* === LETTER SPACING === */
+    --tracking-wide: 0.15em;
+    /* Uppercase labels */
+    --tracking-normal: 0.01em;
+    /* Body text */
 
-    /* === ORIGINAL — BORDER RADIUS === */
+    /* === SPACING SCALE (4px Base) === */
+    --space-xs: 0.25rem;
+    /* 4px */
+    --space-sm: 0.5rem;
+    /* 8px */
+    --space-md: 1rem;
+    /* 16px */
+    --space-lg: 1.5rem;
+    /* 24px */
+    --space-xl: 2rem;
+    /* 32px */
+    --space-2xl: 3rem;
+    /* 48px */
+    --space-3xl: 4rem;
+    /* 64px */
+    --space-4xl: 6rem;
+    /* 96px */
+
+    /* === COMPONENT TOKENS === */
     --radius-sm: 8px;
     --radius-md: 12px;
-    --radius-lg: 20px;
-    --radius-xl: 32px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
 
-    /* === ORIGINAL — TRANSITIONS === */
-    --transition-base: all 0.2s ease;
-    --transition-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glow-primary: 0 0 20px var(--color-primary-glow);
+    --glow-primary-strong: 0 0 40px var(--color-primary-glow);
 
-    /* === NEW — REDESIGN VARIABLES === */
-    --color-bg-primary: #2F002F;
-    --color-bg-secondary: #1A0015;
-    --color-accent-crimson: #EA003A;
-    --color-accent-fuchsia: #820065;
-    --color-accent-plum: #600061;
-    --color-accent-mardi: #41002A;
-    --color-text-secondary: rgba(255,255,255,0.60);
-    --color-text-muted: rgba(255,255,255,0.35);
-    --color-card-bg: rgba(255,255,255,0.04);
-    --color-card-border: 1px solid rgba(255,255,255,0.08);
-    --font-display: 'Cormorant Garamond', serif;
-    --radius-card: 12px;
-    --radius-button: 6px;
-    --transition-smooth: 0.3s ease;
-    --space-xs: 8px;
-    --space-sm: 16px;
-    --space-md: 24px;
-    --space-lg: 40px;
-    --space-xl: 60px;
-    --space-2xl: 80px;
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 400ms ease;
+    --transition-smooth: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* === RESET & BASE === */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html {
-  scroll-behavior: smooth;
+    scroll-behavior: smooth;
+    font-size: 16px;
 }
 
 body {
-  background-color: var(--color-bg-primary);
-  color: var(--color-white);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-
-/* Section padding */
-.section-padding {
-  padding: var(--space-2xl) var(--space-md);
-}
-
-@media (max-width: 768px) {
-  .section-padding {
-    padding: var(--space-xl) var(--space-md);
-  }
+    background: var(--color-dark-base);
+    color: var(--color-white);
+    font-family: var(--font-body);
+    font-weight: var(--weight-regular);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 h1,
@@ -193,39 +210,14 @@ img {
 }
 
 .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(
-    135deg, 
-    var(--color-accent-crimson) 0%, 
-    var(--color-accent-fuchsia) 100%
-  );
-  color: var(--color-white);
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 600;
-  padding: 16px 32px;
-  border-radius: var(--radius-button);
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  transition: opacity var(--transition-base);
-  white-space: nowrap;
+    background: var(--color-primary);
+    color: var(--color-white);
+    box-shadow: 0 0 10px rgba(234, 0, 58, 0.4);
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-}
-
-.btn-primary:active {
-  opacity: 0.85;
-}
-
-/* Full width variant */
-.btn-primary-full {
-  width: 100%;
-  display: flex;
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(234, 0, 58, 0.65);
 }
 
 .btn-outline {
@@ -1612,14 +1604,6 @@ section {
     opacity: 0;
     transform: translateY(30px);
     transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-    animation: revealFallback 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards;
-}
-
-@keyframes revealFallback {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .reveal.active {
@@ -1875,72 +1859,4 @@ section {
 
 .host-action-btn:hover {
     background: rgba(212, 175, 55, 0.1);
-}
-/* === TYPOGRAPHY BASE === */
-.font-display {
-  font-family: var(--font-display);
-  font-style: italic;
-}
-
-.eyebrow {
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-accent-crimson);
-  display: block;
-  margin-bottom: 12px;
-}
-
-.section-headline {
-  font-family: var(--font-body);
-  font-size: clamp(24px, 5vw, 36px);
-  font-weight: 600;
-  color: var(--color-white);
-  line-height: 1.15;
-  margin-bottom: 16px;
-}
-
-.section-subtext {
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-  line-height: 1.7;
-  max-width: 600px;
-}
-
-/* === GLOBAL CARD STYLE === */
-.card-base {
-  background: var(--color-card-bg);
-  border: var(--color-card-border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-}
-
-.crimson-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  min-width: 8px;
-  border-radius: 50%;
-  background-color: var(--color-accent-crimson);
-  box-shadow: 0 0 6px rgba(234,0,58,0.50);
-  margin-right: 12px;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
-
-.callout-box {
-  background: rgba(234,0,58,0.08);
-  border: 1px solid rgba(234,0,58,0.20);
-  border-left: 3px solid var(--color-accent-crimson);
-  border-radius: 10px;
-  padding: 20px 24px;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 16px;
-  color: rgba(255,255,255,0.80);
-  margin-top: 24px;
 }
