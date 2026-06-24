@@ -2140,3 +2140,108 @@ section {
     margin-bottom: 24px !important;
   }
 }
+
+/* === ROUND 4: FLOW SECTION === */
+
+.night-flow {
+  background-color: #1A0015 !important;
+  padding: 80px 0 !important;
+}
+
+@media (max-width: 768px) {
+  .night-flow {
+    padding: 60px 0 !important;
+  }
+}
+
+.eyebrow-new {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #EA003A;
+  margin-bottom: 12px;
+}
+
+.section-h2-new {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  color: #FFFFFF !important;
+  margin-bottom: 32px !important;
+  line-height: 1.2 !important;
+}
+
+.flow-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flow-card-new {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.flow-card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.flow-step-num {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.25);
+}
+
+.flow-pct {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #EA003A;
+}
+
+.flow-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.10);
+  border-radius: 2px;
+  margin-bottom: 14px;
+}
+
+.flow-progress-fill {
+  height: 100%;
+  background: #EA003A;
+  border-radius: 2px;
+}
+
+.flow-step-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 4px;
+}
+
+.flow-step-desc {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: rgba(255,255,255,0.60);
+  line-height: 1.5;
+}
+
+.flow-timing {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+  margin-top: 24px;
+}
