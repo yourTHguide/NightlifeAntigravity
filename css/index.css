@@ -1939,3 +1939,25 @@ section {
     display: none;
   }
 }
+
+/* Nav layout fix */
+.header .nav {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  text-align: left !important;
+}
+
+.header .nav .nav-links-right {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 32px !important;
+}
+
+@media (max-width: 768px) {
+  .header .nav .nav-links-right {
+    display: none !important;
+  }
+}
