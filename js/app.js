@@ -643,3 +643,31 @@ if (headerEl) {
   });
 }
 
+/* Scroll arrow logic */
+const scrollLeftBtn = 
+  document.getElementById('scroll-left');
+const scrollRightBtn = 
+  document.getElementById('scroll-right');
+const cardScroll = 
+  document.querySelector(
+    '.deck-container, .cards-scroll, .night-cards-container'
+  );
+
+if (scrollLeftBtn && cardScroll) {
+  scrollLeftBtn.addEventListener('click', () => {
+    cardScroll.scrollBy({
+      left: -300,
+      behavior: 'smooth'
+    });
+  });
+}
+
+if (scrollRightBtn && cardScroll) {
+  scrollRightBtn.addEventListener('click', () => {
+    cardScroll.scrollBy({
+      left: 300,
+      behavior: 'smooth'
+    });
+  });
+}
+

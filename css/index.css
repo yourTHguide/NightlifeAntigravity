@@ -2245,3 +2245,85 @@ section {
   text-align: center;
   margin-top: 24px;
 }
+
+/* Step 5: Select night section */
+.select-night {
+  background-color: #2F002F !important;
+}
+
+/* Night card sizing — 2:3 portrait ratio */
+.deck-card,
+.night-card,
+.select-night [class*="card"] {
+  width: 260px !important;
+  min-width: 260px !important;
+  height: 390px !important;
+  flex-shrink: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Card scroll container */
+.deck-container,
+.cards-scroll,
+.select-night [class*="container"],
+.select-night [class*="scroll"] {
+  display: flex !important;
+  flex-direction: row !important;
+  overflow-x: scroll !important;
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  gap: 16px !important;
+  padding: 8px 24px 16px !important;
+}
+
+.deck-container::-webkit-scrollbar,
+.cards-scroll::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Scroll arrows — desktop only */
+.scroll-arrow {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .scroll-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    background: rgba(26,0,21,0.90);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    color: #FFFFFF;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s ease,
+                border-color 0.2s ease;
+  }
+
+  .scroll-arrow:hover {
+    background: rgba(234,0,58,0.20);
+    border-color: #EA003A;
+  }
+
+  .scroll-arrow-left {
+    left: 8px;
+  }
+
+  .scroll-arrow-right {
+    right: 8px;
+  }
+
+  .select-night .container {
+    position: relative;
+  }
+}
