@@ -166,15 +166,36 @@ const BCC_DATA = {
     ],
 
     // Night Conductors (Hosts)
-    hosts: [
+        hosts: [
+        {
+            id: 'host-guide',
+            name: 'Guide',
+            image: 'assets/images/Hosts/guide host.JPG',
+            role: 'FOUNDER & HOST',
+            quote: '"Bangkok born. Every venue earned."'
+        },
+        {
+            id: 'host-boom',
+            name: 'Boom',
+            image: 'assets/images/Hosts/boom host.jpg',
+            role: 'SOCIAL CONNECTOR',
+            quote: '"Nobody stays a stranger for long."'
+        },
         {
             id: 'host-ice',
             name: 'Ice',
-            image: 'assets/images/IceBaby.jpg',
-            role: 'Energy Host',
-            shortDesc: 'High energy with sharp intuition.',
-            description: 'Ice reads the room instantly. She turns hesitation into momentum and makes strangers feel like they’ve known each other for years. Confident, warm, and always in control of the vibe.',
-            badges: ['Crowd Reader', 'Energy Builder', 'International Friendly', 'Flow Keeper'],
+            image: 'assets/images/Hosts/Ice host.JPG',
+            role: 'ENERGY HOST',
+            quote: '"The room feels it before the music starts."'
+        },
+        {
+            id: 'host-jj',
+            name: 'JJ',
+            image: 'assets/images/Hosts/JJ host.jpg',
+            role: 'FLOW MANAGER',
+            quote: '"Smooth transitions. The night never drops."'
+        }
+    ],
             stats: 'Hosted 220+ Nights'
         },
         {

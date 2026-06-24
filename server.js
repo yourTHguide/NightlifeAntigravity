@@ -31,17 +31,19 @@ const rateLimit = require('express-rate-limit');
 
 // ——— Config ———
 console.log('💳 Initializing Stripe...');
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_mock_secret_key_for_preview';
+const stripe = new Stripe(stripeSecretKey);
 console.log('🔗 Initializing Supabase...');
 
 // Explicitly check for the Service Role Key. If it's missing, Kong will throw a 401 Unauthorized.
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'mock_supabase_key_for_preview';
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.warn('⚠️ WARNING: SUPABASE_SERVICE_ROLE_KEY is missing in the environment. Falling back to ANON_KEY. This will cause 401 or RLS errors on backend operations.');
 }
 
+const supabaseUrl = process.env.SUPABASE_URL || 'https://mock-project-url-not-configured.supabase.co';
 const supabase = createClient(
-    process.env.SUPABASE_URL,
+    supabaseUrl,
     supabaseKey
 );
 

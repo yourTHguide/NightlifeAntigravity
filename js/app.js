@@ -457,38 +457,30 @@ function initHostsSection() {
     const accordion = document.getElementById('hosts-accordion');
     if (!accordion || !BCC_DATA.hosts) return;
 
-    accordion.innerHTML = BCC_DATA.hosts.map((host, index) => `
-        <div class="host-accordion-item" data-index="${index}">
-            <div class="host-header">
-                <div class="host-portrait-small">
-                    <img src="${host.image}" alt="${host.name}">
-                </div>
-                <div class="host-info-brief">
-                    <h3 class="host-name">${host.name} <span class="verified-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2L15 4.5L18.5 4L20 7.5L23 9.5L21.5 13L23 16.5L20 18.5L18.5 22L15 21.5L12 24L9 21.5L5.5 22L4 18.5L1 16.5L2.5 13L1 9.5L4 7.5L5.5 4L9 4.5L12 2Z" fill="#EA003A"/>
-                            <path d="M10 16L6 12L7.4 10.6L10 13.2L16.6 6.6L18 8L10 16Z" fill="#111114"/>
-                        </svg>
-                    </span></h3>
-                    <span class="role-capsule">${host.role}</span>
-                    <p class="host-short-desc">"${host.shortDesc}"</p>
-                    <p class="host-stat-line"><span class="text-gradient-gold">★</span> ${host.stats}</p>
-                </div>
-                <div class="host-expand-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9L12 15L18 9" stroke="#EA003A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
+        accordion.innerHTML = BCC_DATA.hosts.map((host, index) => `
+        <div class="host-card" data-index="${index}">
+            <div class="host-card-image">
+                <img src="${host.image}" alt="${host.name}" style="object-fit: cover; object-position: center top; width: 100%; height: 100%;">
+                <div class="host-card-overlay"></div>
             </div>
-            
-            <div class="host-expanded-content">
-                <div class="host-expanded-inner">
-                    <div class="host-portrait-large">
-                        <img src="${host.image}" alt="${host.name}">
-                    </div>
-                    <p class="host-full-desc">${host.description}</p>
-                    <div class="host-skills">
-                        ${host.badges.map(badge => `<span class="skill-badge">${badge}</span>`).join('')}
+            <div class="host-card-content" style="padding: 20px;">
+                <div style="display: flex; align-items: center;">
+                    <span style="font-family: 'Inter', sans-serif; font-weight: 600; font-size: 18px; color: #FFFFFF;">${host.name}</span>
+                    <span style="margin-left: 6px; display: inline-flex; align-items: center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L15 4.5L18.5 4L20 7.5L23 9.5L21.5 13L23 16.5L20 18.5L18.5 22L15 21.5L12 24L9 21.5L5.5 22L4 18.5L1 16.5L2.5 13L1 9.5L4 7.5L5.5 4L9 4.5L12 2Z" fill="#EA003A"/>
+                            <path d="M10 16L6 12L7.4 10.6L10 13.2L16.6 6.6L18 8L10 16Z" fill="#111111"/>
+                        </svg>
+                    </span>
+                </div>
+                <div style="font-family: 'Inter', sans-serif; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #EA003A; margin-top: 4px;">
+                    ${host.role}
+                </div>
+                <div style="font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 400; font-size: 14px; color: rgba(255,255,255,0.60); margin-top: 10px; white-space: pre-wrap;">${host.quote}</div>
+            </div>
+        </div>
+    `).join('');
+}
                     </div>
                     <button class="btn host-action-btn">See ${host.name} In Action</button>
                 </div>
