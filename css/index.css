@@ -1860,3 +1860,16 @@ section {
 .host-action-btn:hover {
     background: rgba(212, 175, 55, 0.1);
 }
+
+@keyframes revealFallback {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: revealFallback 0.8s 
+    cubic-bezier(0.2, 0.8, 0.2, 1) 
+    0.3s forwards;
+}
