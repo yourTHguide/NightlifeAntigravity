@@ -2458,3 +2458,93 @@ section {
     right: 8px !important;
   }
 }
+
+/* ================================
+   STEP 5 FINAL FIX
+   ================================ */
+
+/* FIX 1 — Arrow buttons: 
+   hide on mobile completely */
+.scroll-arrow-left,
+.scroll-arrow-right {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+}
+
+@media (min-width: 769px) {
+  .scroll-arrow-left,
+  .scroll-arrow-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    overflow: visible !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: rgba(26,0,21,0.90) !important;
+    border: 1px solid
+      rgba(255,255,255,0.20) !important;
+    border-radius: 50% !important;
+    color: #FFFFFF !important;
+    font-size: 18px !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .scroll-arrow-left {
+    left: -22px !important;
+  }
+
+  .scroll-arrow-right {
+    right: -22px !important;
+  }
+
+  .scroll-arrow-left:hover,
+  .scroll-arrow-right:hover {
+    background: rgba(234,0,58,0.25) !important;
+    border-color: #EA003A !important;
+  }
+}
+
+/* FIX 2 — Restore background-image 
+   on night cards */
+.night-card {
+  background-color: #2F002F !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* FIX 3 — Card container 
+   position relative for arrows */
+.select-night .container {
+  position: relative !important;
+}
+
+/* FIX 4 — Night cards container
+   correct scroll setup */
+.night-cards-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  gap: 16px !important;
+  padding: 8px 0 16px !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+.night-cards-container::-webkit-scrollbar {
+  display: none !important;
+}
