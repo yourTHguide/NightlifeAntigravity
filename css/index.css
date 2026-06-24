@@ -2105,3 +2105,38 @@ section {
     gap: 32px;
   }
 }
+
+/* Nav padding fix */
+@media (min-width: 769px) {
+  .header .nav {
+    padding-left: 40px !important;
+    padding-right: 40px !important;
+  }
+}
+
+/* Hero mobile fixes */
+@media (max-width: 768px) {
+  .hero-overlay {
+    background: linear-gradient(to bottom,
+      rgba(47,0,47,0.35) 0%,
+      rgba(26,0,21,0.96) 100%) !important;
+  }
+
+  .hero-content-new {
+    padding: 0 20px 80px !important;
+  }
+
+  .hero-eyebrow {
+    font-size: 9px !important;
+    letter-spacing: 0.15em !important;
+  }
+
+  .hero-headline {
+    font-size: clamp(36px, 9vw, 56px) !important;
+  }
+
+  .hero-sub {
+    font-size: 16px !important;
+    margin-bottom: 24px !important;
+  }
+}
