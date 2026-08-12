@@ -2,87 +2,15 @@ const initLuxuryLanding = () => {
     const experiences = [
         { 
             tier: "EXPERIENCE 01 / 14",
-            title: "Yacht Party — Pattaya", 
-            price: "From 3,000 THB / person", 
-            pills: ["Private Cruise", "Sunset View", "10-30 Pax"], 
-            category: "LUXURY",
-            img: "assets/images/Yacht Party.jpg", 
-            inc: "4-hour private charter, captain and crew, sound system, drinks package, and a dedicated party host." 
+            title: "Immersive Themed Productions", 
+            price: "Pricing on inquiry — submit details for a custom proposal within 4 hours.", 
+            pills: ["Bangkok Mob", "Masquerade", "100+ Guests"], 
+            category: "PRODUCTION",
+            img: "assets/images/BNT Expansions/BangkokMasquerade-262.jpg", 
+            inc: "Turnkey high-concept large events. Complete set design, venue transformation, specialized visual effects, and custom talent casting based on our landmark concepts like Bangkok Mob and Bangkok Masquerade." 
         },
         { 
             tier: "EXPERIENCE 02 / 14",
-            title: "Pool Villa Party", 
-            price: "From 4,800 THB / person", 
-            pills: ["Private Villa", "DJ Included", "No Curfew"], 
-            category: "PRODUCTION",
-            img: "assets/images/Pool villa party1.jpg", 
-            inc: "Luxury villa matching your group size, professional DJ, sound & light setup, and full event hosting." 
-        },
-        { 
-            tier: "EXPERIENCE 03 / 14",
-            title: "Penthouse Party", 
-            price: "From 25,000 THB flat", 
-            pills: ["Your Space", "Club Lights", "Private DJ"], 
-            category: "PRODUCTION",
-            img: "assets/images/penthouse party.jpg", 
-            inc: "We bring the club to your suite. Includes a pro DJ for 3 hours, premium sound, party lighting, and clean setup/breakdown." 
-        },
-        { 
-            tier: "EXPERIENCE 04 / 14",
-            title: "Proposal Night", 
-            price: "From 20,000 THB flat", 
-            pills: ["Rooftop VIP", "Champagne", "Photographer"], 
-            category: "CELEBRATION",
-            img: "assets/images/proposal.jpg", 
-            inc: "Premium rooftop table setup, senior host coordinator, 1 bottle of champagne, flowers, and a hidden photographer." 
-        },
-        { 
-            tier: "EXPERIENCE 05 / 14",
-            title: "Anniversary Night", 
-            price: "From 10,000 THB flat", 
-            pills: ["Rooftop Dinner", "Cocktails", "Couples"], 
-            category: "CELEBRATION",
-            img: "assets/images/Anniversary.JPG", 
-            inc: "Ultra-premium table booking, signature cocktails, fresh flowers at the table, and fully customized planning." 
-        },
-        { 
-            tier: "EXPERIENCE 06 / 14",
-            title: "Bachelor Night Out", 
-            price: "From 2,000 THB / person", 
-            pills: ["Stag Party", "VIP Transport", "3 Venues"], 
-            category: "CELEBRATION",
-            img: "assets/images/card-bachelor.jpeg", 
-            inc: "High-energy 3-club tour, premium party sprinter with sound system, free welcome shots, and a private group host." 
-        },
-        { 
-            tier: "EXPERIENCE 07 / 14",
-            title: "Bachelorette Night", 
-            price: "From 2,000 THB / person", 
-            pills: ["Girls Night", "VIP Entry", "Party Sprinter"], 
-            category: "CELEBRATION",
-            img: "public/assets/images/hen-party.jpg", 
-            inc: "Tailored premium venue route, private luxury sprinter transport, free welcome shots, hen prop kit, and full hosting." 
-        },
-        { 
-            tier: "EXPERIENCE 08 / 14",
-            title: "Birthday Night Out", 
-            price: "From 2,000 THB / person", 
-            pills: ["Celebration", "VIP Access", "Birthday Surprise"], 
-            category: "CELEBRATION",
-            img: "assets/images/birthday party.JPG", 
-            inc: "Curated 2-3 venue tour, express line bypass, private sprinter lounge, welcome shots, and full birthday surprise coordination." 
-        },
-        { 
-            tier: "EXPERIENCE 09 / 14",
-            title: "Private Club Crawl", 
-            price: "From 1,500 THB / person", 
-            pills: ["Private Group", "Line Bypass", "Custom Clubs"], 
-            category: "LUXURY",
-            img: "assets/images/Bangkok Club Crawl.png", 
-            inc: "The ultimate custom Bangkok club tour. Private transport, express skip-the-line club access, welcome shots, and your own host." 
-        },
-        { 
-            tier: "EXPERIENCE 10 / 14",
             title: "VIP Table Bookings", 
             price: "Pricing on inquiry — submit details for a custom proposal within 4 hours.", 
             pills: ["Top Clubs", "Skip Lines", "Best Tables"], 
@@ -91,40 +19,112 @@ const initLuxuryLanding = () => {
             inc: "Access to the best tables at Sing Sing, Levels, and premier venues. Instant entry list skip-the-line validation. (Venue minimum spends apply)." 
         },
         { 
-            tier: "EXPERIENCE 11 / 14",
-            title: "Corporate Team Night", 
-            price: "From 1,800 THB / person", 
-            pills: ["Companies", "Team Building", "Full Transport"], 
-            category: "CELEBRATION",
-            img: "assets/images/card-corporate.jpeg", 
-            inc: "Smooth, safe, and exciting venue itineraries designed for corporate groups. Includes transport, drinks, and full host management." 
+            tier: "EXPERIENCE 03 / 14",
+            title: "Yacht Party — Pattaya", 
+            price: "From 3,000 THB / person", 
+            pills: ["Private Cruise", "Sunset View", "10-30 Pax"], 
+            category: "LUXURY",
+            img: "assets/images/BNT Expansions/Yacht Party.jpg", 
+            inc: "4-hour private charter, captain and crew, sound system, drinks package, and a dedicated party host." 
         },
         { 
-            tier: "EXPERIENCE 12 / 14",
+            tier: "EXPERIENCE 04 / 14",
+            title: "Penthouse Party", 
+            price: "From 25,000 THB flat", 
+            pills: ["Your Space", "Club Lights", "Private DJ"], 
+            category: "PRODUCTION",
+            img: "assets/images/BNT Expansions/penthouse party.jpg", 
+            inc: "We bring the club to your suite. Includes a pro DJ for 3 hours, premium sound, party lighting, and clean setup/breakdown." 
+        },
+        { 
+            tier: "EXPERIENCE 05 / 14",
+            title: "Pool Villa Party", 
+            price: "From 4,800 THB / person", 
+            pills: ["Private Villa", "DJ Included", "No Curfew"], 
+            category: "PRODUCTION",
+            img: "assets/images/BNT Expansions/Pool villa party1.jpg", 
+            inc: "Luxury villa matching your group size, professional DJ, sound & light setup, and full event hosting." 
+        },
+        { 
+            tier: "EXPERIENCE 06 / 14",
             title: "Rooftop Private Buyout", 
             price: "Pricing on inquiry — submit details for a custom proposal within 4 hours.", 
             pills: ["Skyline Views", "Full Venue", "Custom Budget"], 
             category: "LUXURY",
-            img: "assets/images/card-rooftop.jpeg", 
+            img: "assets/images/BNT Expansions/card-rooftop.jpeg", 
             inc: "Complete private buyout of Bangkok’s top rooftop spaces. Full concept setup, guest management, and staffing included." 
         },
         { 
-            tier: "EXPERIENCE 13 / 14",
+            tier: "EXPERIENCE 07 / 14",
             title: "Brand & Creator Events", 
             price: "Pricing on inquiry — submit details for a custom proposal within 4 hours.", 
             pills: ["Agencies", "Launch Party", "Media Ready"], 
             category: "PRODUCTION",
-            img: "assets/images/brand event.JPG", 
+            img: "assets/images/BNT Expansions/brand event.JPG", 
             inc: "Access to partner clubs, lighting optimized for content creation, local network activation, and full on-ground event management." 
         },
         { 
+            tier: "EXPERIENCE 08 / 14",
+            title: "Corporate Night Out", 
+            price: "From 1,800 THB / person", 
+            pills: ["Companies", "Team Building", "Full Transport"], 
+            category: "CELEBRATION",
+            img: "assets/images/BNT Expansions/card-corporate.jpeg", 
+            inc: "Smooth, safe, and exciting venue itineraries designed for corporate groups. Includes transport, drinks, and full host management." 
+        },
+        { 
+            tier: "EXPERIENCE 09 / 14",
+            title: "Surprise Proposal", 
+            price: "From 20,000 THB flat", 
+            pills: ["Rooftop VIP", "Champagne", "Photographer"], 
+            category: "CELEBRATION",
+            img: "assets/images/BNT Expansions/proposal.jpg", 
+            inc: "Premium rooftop table setup, senior host coordinator, 1 bottle of champagne, flowers, and a hidden photographer." 
+        },
+        { 
+            tier: "EXPERIENCE 10 / 14",
+            title: "Anniversary Dinner/Night", 
+            price: "From 10,000 THB flat", 
+            pills: ["Rooftop Dinner", "Cocktails", "Couples"], 
+            category: "CELEBRATION",
+            img: "assets/images/BNT Expansions/Anniversary.JPG", 
+            inc: "Ultra-premium table booking, signature cocktails, fresh flowers at the table, and fully customized planning." 
+        },
+        { 
+            tier: "EXPERIENCE 11 / 14",
+            title: "Bachelorette Night", 
+            price: "From 2,000 THB / person", 
+            pills: ["Girls Night", "VIP Entry", "Party Sprinter"], 
+            category: "CELEBRATION",
+            img: "assets/images/BNT Expansions/hen party.JPG", 
+            inc: "Tailored premium venue route, private luxury sprinter transport, free welcome shots, hen prop kit, and full hosting." 
+        },
+        { 
+            tier: "EXPERIENCE 12 / 14",
+            title: "Bachelor Night Out", 
+            price: "From 2,000 THB / person", 
+            pills: ["Stag Party", "VIP Transport", "3 Venues"], 
+            category: "CELEBRATION",
+            img: "assets/images/BNT Expansions/card-bachelor.jpeg", 
+            inc: "High-energy 3-club tour, premium party sprinter with sound system, free welcome shots, and a private group host." 
+        },
+        { 
+            tier: "EXPERIENCE 13 / 14",
+            title: "Birthday Party", 
+            price: "From 2,000 THB / person", 
+            pills: ["Celebration", "VIP Access", "Birthday Surprise"], 
+            category: "CELEBRATION",
+            img: "assets/images/BNT Expansions/birthday party.JPG", 
+            inc: "Curated 2-3 venue tour, express line bypass, private sprinter lounge, welcome shots, and full birthday surprise coordination." 
+        },
+        { 
             tier: "EXPERIENCE 14 / 14",
-            title: "Immersive Themed Productions", 
-            price: "Pricing on inquiry — submit details for a custom proposal within 4 hours.", 
-            pills: ["Bangkok Mob", "Masquerade", "100+ Guests"], 
-            category: "PRODUCTION",
-            img: "assets/images/BangkokMasquerade-218.jpg", 
-            inc: "Turnkey high-concept large events. Complete set design, venue transformation, specialized visual effects, and custom talent casting based on our landmark concepts like Bangkok Mob and Bangkok Masquerade." 
+            title: "Private Club Crawl", 
+            price: "From 1,500 THB / person", 
+            pills: ["Private Group", "Line Bypass", "Custom Clubs"], 
+            category: "LUXURY",
+            img: "assets/images/1. Meet/tempImageUPP7J2.remini-enhanced.jpg", 
+            inc: "The ultimate custom Bangkok club tour. Private transport, express skip-the-line club access, welcome shots, and your own host." 
         }
     ];
 

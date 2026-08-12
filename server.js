@@ -1,14 +1,16 @@
 /**
- * 🚀 Bangkok Club Crawl — Booking Engine Server
- * 
- * Endpoints:
- *   POST /api/create-checkout     → Guest upsert + Pending booking + Stripe Checkout
- *   POST /api/stripe-webhook      → Payment verification + Tag management + Email notifications
- *   POST /api/webhooks/bokun      → OTA webhook: Bokun booking notifications
- *   GET  /api/booking-status/:id  → Booking status lookup
- *   GET  /api/verify-session      → Stripe session verification for success page
- * 
- * Also serves the static frontend on all other routes.
+ * 🌙 BEST Nightlife Thailand — Concierge Platform Server
+ *
+ * BNT Endpoints:
+ *   POST /api/vip-inquiry         → VIP experience inquiry
+ *   POST /api/contact             → Contact form submission
+ *   POST /api/omnichannel-chat    → AI concierge chat
+ *
+ * Legacy BCC Endpoints (preserved, pending second-pass cleanup):
+ *   POST /api/create-checkout     → BCC Stripe Checkout
+ *   POST /api/stripe-webhook      → BCC payment webhook
+ *   POST /api/webhooks/bokun      → Bokun OTA webhook
+ *   GET  /api/booking-status/:id  → BCC booking status
  */
 
 
@@ -295,19 +297,13 @@ app.use((req, res, next) => {
 console.log('📦 Middlewares Loading...');
 app.use(cors());
 
-// ——— Host-Based Routing Middleware (Content-Based Router) ———
-// Multi-domain mapping: Intercept GET / requests
-app.get('/', (req, res, next) => {
-    const host = req.headers.host || '';
-    if (host.includes('bestnightlifethailand.com')) {
-        console.log(`🌐 Host ${host} detected: Serving Concierge (landing.html) on root (/)`);
-        return res.sendFile(path.join(__dirname, 'landing.html'));
-    }
-    // For bkkclubcrawl.com or generic vercel.app/localhost, continue to default index.html
-    next();
+// ——— Root Route: BEST Nightlife Thailand ———
+// This server is bestnightlifethailand.com. / always serves the BNT concierge landing.
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// ——— Premium Interface Route ———
+// ——— /concierge alias (preserved for any inbound links) ———
 app.get('/concierge', (req, res) => {
     res.sendFile(path.join(__dirname, 'landing.html'));
 });
@@ -1758,15 +1754,13 @@ if (require.main === module) {
         const emailReady = process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_your_api_key_here';
         console.log(`
 ╔══════════════════════════════════════════════════╗
-║  🌃 Bangkok Club Crawl — Booking Engine          ║
-║  Server running at http://localhost:${PORT}          ║
+║  🌙 BEST Nightlife Thailand — Concierge Server   ║
+║  Running at http://localhost:${PORT}                 ║
 ║                                                  ║
-║  Endpoints:                                      ║
-║    POST /api/create-checkout                     ║
-║    POST /api/stripe-webhook                      ║
-║    POST /api/webhooks/bokun                      ║
+║  BNT Endpoints:                                  ║
+║    POST /api/vip-inquiry                         ║
+║    POST /api/contact                             ║
 ║    POST /api/omnichannel-chat                    ║
-║    GET  /api/booking-status/:id                  ║
 ║                                                  ║
 ║  Email (Resend):                                 ║
 ║    Admin:   ${emailReady ? ADMIN_EMAIL : '⏳ Not configured'}  ║
