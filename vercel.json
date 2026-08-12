@@ -61,15 +61,15 @@
         },
         {
             "src": "/dashboard(.html)?",
-            "dest": "/dashboard.html"
+            "dest": "/server.js"
         },
         {
             "src": "/admin-v2(.html)?",
-            "dest": "/admin-v2.html"
+            "dest": "/server.js"
         },
         {
             "src": "/book(.html)?",
-            "dest": "/book.html"
+            "dest": "/server.js"
         },
         {
             "src": "/(.*)",
