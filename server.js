@@ -308,6 +308,16 @@ app.get('/concierge', (req, res) => {
     res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
+// ——— Legacy BCC Page Redirects (Phase 1 decommission) ———
+// Prevents any new BCC transactions from entering the legacy Nightlife pipeline.
+// New canonical BCC site: https://www.bkkclubcrawl.com
+const BCC_CANONICAL = 'https://www.bkkclubcrawl.com';
+app.get(['/book', '/book.html'],            (req, res) => res.redirect(301, `${BCC_CANONICAL}/book`));
+app.get(['/index.html'],                     (req, res) => res.redirect(301, BCC_CANONICAL));
+app.get(['/dashboard', '/dashboard.html'],   (req, res) => res.redirect(301, `${BCC_CANONICAL}/dashboard`));
+app.get(['/admin-v2', '/admin-v2.html'],     (req, res) => res.status(410).send('This page has been decommissioned.'));
+// /booking-success: redirect deferred — Phase 2 (14-day Stripe webhook transition window)
+
 // ——— Extensionless URL Middleware ———
 // Matches the routing logic in vercel.json for local development
 app.use((req, res, next) => {
