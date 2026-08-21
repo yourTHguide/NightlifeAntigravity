@@ -29,6 +29,9 @@ const { createClient } = require('@supabase/supabase-js');
 const { Resend } = require('resend');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const productApi = require('./lib/canonicalProductApi');
+const { renderProductPage, renderProductFallbackPage } = require('./lib/renderProductPage');
+const productPageFixtures = require('./fixtures/productPageFixtures');
 
 
 // ——— Config ———
@@ -306,6 +309,72 @@ app.get('/', (req, res) => {
 // ——— /concierge alias (preserved for any inbound links) ———
 app.get('/concierge', (req, res) => {
     res.sendFile(path.join(__dirname, 'landing.html'));
+});
+
+// ═══════════════════════════════════════════════════
+//  GET /events/:slug — Phase 4 Stage B
+//  Reusable BEST Nightlife product page. Fetches Product data
+//  server-to-server from the canonical bcc-claude Product Read API
+//  (never a direct Supabase connection from this repo). Generic renderer —
+//  no product-specific logic lives in this route or in renderProductPage.js.
+//  Booking is not wired yet (Stages C/D): the CTA renders disabled.
+// ═══════════════════════════════════════════════════
+app.get('/events/:slug', async (req, res) => {
+    const { slug } = req.params;
+    const previewKey = typeof req.query.preview === 'string' ? req.query.preview : null;
+
+    let apiResult;
+    let previewBanner = null;
+
+    if (previewKey && productApi.isMockAllowed()) {
+        const fixture = productPageFixtures[previewKey];
+        if (!fixture) {
+            return res
+                .status(404)
+                .send(
+                    renderProductFallbackPage({
+                        title: 'Unknown preview fixture',
+                        message: `No preview fixture named "${previewKey}". Available: ${Object.keys(productPageFixtures).join(', ')}.`,
+                    })
+                );
+        }
+        apiResult = { status: 'ok', data: fixture };
+        previewBanner = `PREVIEW FIXTURE ("${previewKey}") — mock data, not connected to the live Product API`;
+    } else {
+        apiResult = await productApi.fetchCanonicalProduct(slug);
+    }
+
+    if (apiResult.status === 'not_found') {
+        return res
+            .status(404)
+            .send(
+                renderProductFallbackPage({
+                    title: 'Event not found',
+                    message: 'This event doesn’t exist, isn’t published yet, or isn’t available here.',
+                })
+            );
+    }
+
+    if (apiResult.status === 'error') {
+        return res
+            .status(503)
+            .send(
+                renderProductFallbackPage({
+                    title: 'Temporarily unavailable',
+                    message: 'We couldn’t load this event right now. Please try again in a moment.',
+                })
+            );
+    }
+
+    const pageUrl = `${req.protocol}://${req.get('host')}${req.originalUrl.split('?')[0]}`;
+
+    return res.send(
+        renderProductPage(apiResult.data, {
+            booking: { enabled: false }, // BNT booking surface not built yet — Stage C/D
+            previewBanner,
+            pageUrl,
+        })
+    );
 });
 
 // ——— Legacy BCC Page Redirects (Phase 1 decommission) ———
