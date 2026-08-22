@@ -66,6 +66,12 @@
 
 .pp-root h1, .pp-root h2, .pp-root h3 { font-family: var(--font-display); margin: 0; }
 
+/* .pp-headline (h2) needs a real margin-bottom of its own. Plain-class
+   ".pp-headline { margin: ... }" has specificity (0,1,0), lower than the
+   ".pp-root h2 { margin: 0; }" reset above at (0,1,1) — so it silently
+   lost every margin declared on it. Scoping to ".pp-root .pp-headline"
+   below raises it to (0,2,0) so it actually wins. */
+
 /* ——— Preview fixture banner ——— */
 .pp-preview-banner {
   position: sticky;
@@ -188,10 +194,10 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--pp-accent);
-  margin: 0 0 14px;
+  margin: 0 0 10px;
 }
-.pp-eyebrow--standalone { margin-bottom: 30px; }
-.pp-headline {
+.pp-eyebrow--standalone { margin-bottom: 26px; }
+.pp-root .pp-headline {
   font-style: italic;
   font-weight: 600;
   font-size: clamp(26px, 6vw, 32px);
@@ -199,7 +205,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 42px;
+  margin: 0 0 26px;
   line-height: 1.35;
 }
 
@@ -356,25 +362,34 @@
 }
 .pp-footer-text { font-size: 11px; color: var(--pp-text-tertiary); margin: 0; }
 
-/* ——— Sticky mobile booking bar ——— */
+/* ——— Sticky mobile booking bar ———
+   BCC-style conversion bar: full-width fuchsia/magenta gradient (reuses
+   --pp-accent-gradient, same tokens as the eyebrow/headline system, not a
+   new color), price on the left, a solid white pill CTA on the right.
+   The disabled state (Stage B — booking not live yet) keeps the exact
+   same gradient system for visual continuity, just swaps the button for
+   plain centered text so it reads as informational, not clickable. */
 .pp-sticky-bar {
   display: none;
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 250;
-  background: linear-gradient(135deg, var(--pp-gold) 0%, #A8842A 100%);
+  background: var(--pp-accent-gradient);
+  box-shadow: 0 -8px 24px rgba(234, 0, 58, 0.35);
   align-items: center; justify-content: space-between;
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-}
-.pp-sticky-bar--disabled {
-  background: var(--pp-surface-raised);
-  border-top: 1px solid var(--pp-border);
-  justify-content: center;
+  gap: 16px;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
 }
 .pp-sticky-price { display: flex; flex-direction: column; line-height: 1.1; }
-.pp-sticky-price-amount { font-weight: 700; font-size: 17px; color: #1A0015; }
-.pp-sticky-price-unit { font-weight: 600; font-size: 9px; letter-spacing: 0.1em; color: rgba(26,0,21,0.7); }
-.pp-sticky-cta { font-weight: 700; font-size: 14px; color: #1A0015; letter-spacing: 0.02em; text-decoration: none; }
+.pp-sticky-price-amount { font-weight: 700; font-size: 20px; color: #FFFFFF; }
+.pp-sticky-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: #FFFFFF; color: var(--pp-accent);
+  font-weight: 700; font-size: 14px; letter-spacing: 0.02em; white-space: nowrap;
+  padding: 13px 22px; border-radius: 8px; text-decoration: none;
+}
+.pp-sticky-bar--disabled { justify-content: center; }
 .pp-sticky-disabled-text {
-  font-weight: 700; font-size: 12px; letter-spacing: 0.04em; color: rgba(255,255,255,0.6);
+  font-weight: 700; font-size: 13px; letter-spacing: 0.04em; color: rgba(255,255,255,0.92);
   text-align: center;
 }
 
@@ -394,7 +409,10 @@
 
 @media (max-width: 768px) {
   .pp-sticky-bar { display: flex; }
-  .pp-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  /* Reserve enough for the taller enabled-CTA bar (price + white pill
+     button, ~70px tall), not just the shorter disabled-text bar (~43px),
+     so content is never clipped once booking goes live in Stage C. */
+  .pp-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 
   /* Keep all four Quick Facts columns on one row. Mobile shows the compact
      values ("5 Sept", "฿890" — no weekday, no "/ person") instead of the
