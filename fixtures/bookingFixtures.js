@@ -23,13 +23,37 @@
  */
 
 const RECURRING_TICKET_OPTIONS = [
-  { id: 'early-bird', label: 'Early Bird', sublabel: 'Limited availability', price: 300 },
-  { id: 'general', label: 'General Admission', price: 450 },
+  {
+    id: 'early-bird',
+    label: 'Early Bird',
+    sublabel: 'Limited availability',
+    price: 300,
+    includes: ['Welcome shot', 'Priority entry'],
+  },
+  {
+    id: 'general',
+    label: 'General Admission',
+    sublabel: 'Standard entry',
+    price: 450,
+    includes: ['Welcome shot', 'Standard entry'],
+  },
 ];
 
 const ONE_TIME_TICKET_OPTIONS = [
-  { id: 'general', label: 'General Admission', price: 1200 },
-  { id: 'vip', label: 'VIP Masked Pass', price: 1800 },
+  {
+    id: 'general',
+    label: 'General Admission',
+    sublabel: 'Standard entry',
+    price: 1200,
+    includes: ['Welcome drink', 'Standard entry'],
+  },
+  {
+    id: 'vip',
+    label: 'VIP Masked Pass',
+    sublabel: 'VIP experience',
+    price: 1800,
+    includes: ['Welcome drink', 'Fast-track entry', 'Access to VIP area'],
+  },
 ];
 
 const demo = [

@@ -199,6 +199,23 @@
   transition: transform 0.15s ease;
 }
 .bp-event-card:hover { transform: translateY(-2px); }
+/* Separate layer from the card's own background-image (the photo, set
+   inline per-event) so the darkening is a smooth vignette over whatever
+   image is there, not a flat box glued to the bottom of the text. Fully
+   transparent through the top ~55% — the photo reads clearly there —
+   then eases into the bottom so title/subtitle/price stay readable. */
+.bp-event-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.82) 0%,
+    rgba(0, 0, 0, 0.5) 28%,
+    rgba(0, 0, 0, 0.15) 50%,
+    transparent 70%
+  );
+}
 .bp-event-card-badge {
   position: absolute;
   top: 12px;
@@ -223,7 +240,6 @@
   position: absolute;
   left: 0; right: 0; bottom: 0;
   padding: 16px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
 }
 .bp-event-card-name {
   font-family: var(--font-display);
@@ -323,7 +339,7 @@
   padding: 18px 20px;
   margin-bottom: 24px;
   background: var(--bp-surface);
-  border: 1px solid var(--bp-accent-soft);
+  border: 1px solid var(--bp-border);
   border-radius: 14px;
 }
 .bp-one-night-eyebrow {
@@ -347,7 +363,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 16px;
+  padding: 16px;
   margin-bottom: 24px;
+  background: var(--bp-surface);
+  border: 1px solid var(--bp-border);
+  border-radius: 14px;
 }
 
 /* ——— Ticket type — reads from an optional per-event ticketOptions array
@@ -361,8 +381,7 @@
 }
 .bp-ticket-option {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   padding: 14px 16px;
   background: var(--bp-surface);
   border: 1px solid var(--bp-border);
@@ -375,6 +394,7 @@
   border-color: var(--bp-accent);
   background: var(--bp-accent-soft);
 }
+.bp-ticket-option-row { display: flex; align-items: center; gap: 12px; }
 .bp-ticket-radio {
   flex: 0 0 auto;
   width: 18px;
@@ -390,6 +410,46 @@
 .bp-ticket-label { font-size: 14px; font-weight: 600; color: var(--bp-text-primary); }
 .bp-ticket-sublabel { font-size: 12px; color: var(--bp-text-tertiary); }
 .bp-ticket-price { flex: 0 0 auto; font-size: 14px; font-weight: 700; color: var(--bp-accent); }
+
+/* Inclusions: present in the DOM for every option, revealed only for the
+   selected one via [is-selected] — no re-render needed on switch, and
+   unselected tickets stay compact/scannable. */
+.bp-ticket-includes {
+  display: none;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bp-border);
+}
+.bp-ticket-option.is-selected .bp-ticket-includes { display: block; }
+.bp-ticket-includes-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bp-text-tertiary);
+}
+.bp-ticket-includes-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bp-ticket-includes-list li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--bp-text-body);
+}
+.bp-ticket-includes-list li::before {
+  content: '\2713';
+  position: absolute;
+  left: 0;
+  color: var(--bp-accent);
+  font-weight: 700;
+}
 
 .bp-qty-stepper {
   display: inline-flex;
@@ -511,7 +571,3 @@
   text-transform: uppercase;
   opacity: 0.75;
 }
-.bp-sticky-bar--disabled {
-  justify-content: center;
-}
-.bp-sticky-bar--disabled .bp-sticky-price { margin-right: 8px; }
