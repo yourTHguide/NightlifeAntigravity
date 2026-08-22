@@ -19,6 +19,7 @@
   --pp-border: rgba(255, 255, 255, 0.08);
 
   --pp-text-primary: #FFFFFF;
+  --pp-text-body: rgba(255, 255, 255, 0.86);
   --pp-text-secondary: rgba(255, 255, 255, 0.68);
   --pp-text-tertiary: rgba(255, 255, 255, 0.42);
 
@@ -160,6 +161,7 @@
   white-space: nowrap;
 }
 .pp-fact-value { font-weight: 600; font-size: 16px; color: var(--pp-text-primary); margin: 0; white-space: nowrap; }
+.pp-fact-value--compact { display: none; }
 
 /* ——— Generic section shell ——— */
 .pp-section { padding: 40px 20px; }
@@ -173,15 +175,16 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--pp-gold);
-  margin: 0 0 10px;
+  margin: 0 0 16px;
 }
+.pp-eyebrow--standalone { margin-bottom: 20px; }
 .pp-headline {
   font-style: italic;
   font-weight: 600;
-  font-size: clamp(22px, 5vw, 28px);
+  font-size: clamp(24px, 5.5vw, 30px);
   color: var(--pp-text-primary);
-  margin: 0 0 18px;
-  line-height: 1.2;
+  margin: 0 0 26px;
+  line-height: 1.32;
 }
 
 .pp-lede {
@@ -190,12 +193,12 @@
   font-weight: 600;
   font-size: clamp(18px, 4.5vw, 22px);
   color: rgba(255,255,255,0.88);
-  line-height: 1.5;
-  margin: 0 0 18px;
+  line-height: 1.55;
+  margin: 0 0 22px;
 }
 .pp-body-copy {
   font-size: 14px;
-  color: var(--pp-text-secondary);
+  color: var(--pp-text-body);
   line-height: 1.85;
   white-space: pre-wrap;
   margin: 0;
@@ -211,8 +214,8 @@
   background: var(--pp-gold);
   box-shadow: 0 0 8px var(--pp-gold-glow);
 }
-.pp-bullet-text { font-size: 14px; color: rgba(255,255,255,0.78); line-height: 1.65; margin: 0; }
-.pp-bullets--small .pp-bullet-text { font-size: 13px; color: rgba(255,255,255,0.65); }
+.pp-bullet-text { font-size: 14px; color: var(--pp-text-body); line-height: 1.65; margin: 0; }
+.pp-bullets--small .pp-bullet-text { font-size: 13px; color: rgba(255,255,255,0.75); }
 
 /* ——— Timeline (how the night goes) ——— */
 .pp-timeline { display: flex; flex-direction: column; }
@@ -232,7 +235,7 @@
 .pp-timeline-body { padding-bottom: 24px; }
 .pp-timeline-row:last-child .pp-timeline-body { padding-bottom: 0; }
 .pp-timeline-title { font-weight: 600; font-size: 15px; color: var(--pp-text-primary); margin: 0 0 4px; }
-.pp-timeline-desc { font-size: 13px; color: var(--pp-text-secondary); line-height: 1.6; margin: 0; }
+.pp-timeline-desc { font-size: 13px; color: var(--pp-text-body); line-height: 1.6; margin: 0; }
 
 /* ——— Meeting point: map + location card (public) ——— */
 .pp-map-embed {
@@ -252,7 +255,7 @@
   font-family: var(--font-display); font-style: italic; font-weight: 600;
   font-size: 17px; color: var(--pp-text-primary); margin: 0 0 4px;
 }
-.pp-loc-address { font-size: 13px; color: var(--pp-text-secondary); line-height: 1.65; margin: 0; }
+.pp-loc-address { font-size: 13px; color: var(--pp-text-body); line-height: 1.65; margin: 0; }
 .pp-loc-instructions { font-size: 12px; color: var(--pp-text-tertiary); line-height: 1.5; margin-top: 8px; }
 .pp-loc-link {
   display: inline-block; margin-top: 10px;
@@ -275,7 +278,7 @@
   font-family: var(--font-display); font-style: italic; font-weight: 600;
   font-size: 18px; color: var(--pp-text-primary); margin: 0 0 6px;
 }
-.pp-afterbooking-text { font-size: 13px; color: var(--pp-text-secondary); line-height: 1.6; margin: 0; }
+.pp-afterbooking-text { font-size: 13px; color: var(--pp-text-body); line-height: 1.6; margin: 0; }
 
 /* ——— What's included: icon cards ——— */
 .pp-include-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -286,7 +289,7 @@
   display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
 }
 .pp-include-icon { width: 24px; height: 24px; color: var(--pp-gold); }
-.pp-include-text { font-size: 12px; color: rgba(255,255,255,0.78); line-height: 1.4; margin: 0; }
+.pp-include-text { font-size: 12px; color: var(--pp-text-body); line-height: 1.4; margin: 0; }
 
 /* ——— What's not included: cleaner ×-marker list ——— */
 .pp-not-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
@@ -377,21 +380,23 @@
   .pp-sticky-bar { display: flex; }
   .pp-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 
-  /* Keep all four Quick Facts columns on one row — tighten just enough
-     that the widest value ("฿890 / person") never has to wrap. */
+  /* Keep all four Quick Facts columns on one row. Mobile shows the compact
+     values ("5 Sept", "฿890" — no weekday, no "/ person") instead of the
+     richer desktop copy, so there's room to breathe without wrapping. */
   .pp-quickfacts { padding: 16px 14px; }
-  .pp-quickfacts-inner { gap: 6px 10px; }
+  .pp-quickfacts-inner { gap: 8px 14px; }
   .pp-fact-label { font-size: 8px; letter-spacing: 0.10em; }
-  .pp-fact-value { font-size: 13px; }
+  .pp-fact-value { font-size: 14px; }
+  .pp-fact-value--full { display: none; }
+  .pp-fact-value--compact { display: block; }
 }
 
-/* Extra-narrow phones (e.g. 320px-class devices) need a touch more room
-   for "฿890 / person" than the 768px breakpoint alone gives. */
+/* Extra-narrow phones (e.g. 320px-class devices) need a touch more room. */
 @media (max-width: 360px) {
   .pp-quickfacts { padding: 14px 10px; }
-  .pp-quickfacts-inner { gap: 5px 7px; }
+  .pp-quickfacts-inner { gap: 6px 9px; }
   .pp-fact-label { font-size: 7px; letter-spacing: 0.08em; }
-  .pp-fact-value { font-size: 12px; }
+  .pp-fact-value { font-size: 13px; }
 }
 
 @media (min-width: 640px) {
