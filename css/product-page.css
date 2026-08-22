@@ -162,7 +162,7 @@
 .pp-fact-value { font-weight: 600; font-size: 16px; color: var(--pp-text-primary); margin: 0; white-space: nowrap; }
 
 /* ——— Generic section shell ——— */
-.pp-section { padding: 48px 20px; }
+.pp-section { padding: 40px 20px; }
 .pp-section-inner { max-width: 620px; margin: 0 auto; }
 .pp-section--alt { background: var(--pp-surface); }
 
@@ -173,14 +173,14 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--pp-gold);
-  margin: 0 0 14px;
+  margin: 0 0 10px;
 }
 .pp-headline {
   font-style: italic;
   font-weight: 600;
   font-size: clamp(22px, 5vw, 28px);
   color: var(--pp-text-primary);
-  margin: 0 0 20px;
+  margin: 0 0 18px;
   line-height: 1.2;
 }
 
@@ -234,15 +234,64 @@
 .pp-timeline-title { font-weight: 600; font-size: 15px; color: var(--pp-text-primary); margin: 0 0 4px; }
 .pp-timeline-desc { font-size: 13px; color: var(--pp-text-secondary); line-height: 1.6; margin: 0; }
 
-/* ——— Meeting point ——— */
-.pp-meeting-name { font-weight: 600; font-size: 17px; color: var(--pp-text-primary); margin: 0 0 8px; }
-.pp-meeting-address { font-size: 14px; color: rgba(255,255,255,0.68); line-height: 1.7; margin: 0; }
-.pp-meeting-link {
-  display: inline-block; margin-top: 8px;
-  font-weight: 600; font-size: 13px; color: var(--pp-pink); text-decoration: none;
+/* ——— Meeting point: map + location card (public) ——— */
+.pp-map-embed {
+  border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--pp-border); background: var(--pp-surface-raised);
+  margin-bottom: 14px;
 }
-.pp-meeting-instructions { font-size: 13px; color: var(--pp-text-tertiary); line-height: 1.6; margin-top: 10px; }
-.pp-meeting-afterbooking { font-size: 14px; color: var(--pp-text-secondary); margin: 0; }
+.pp-map-embed iframe { display: block; width: 100%; height: 200px; border: 0; }
+
+.pp-loc-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--pp-border); border-radius: 12px; padding: 16px;
+}
+.pp-loc-card-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.pp-loc-name {
+  font-family: var(--font-display); font-style: italic; font-weight: 600;
+  font-size: 17px; color: var(--pp-text-primary); margin: 0 0 4px;
+}
+.pp-loc-address { font-size: 13px; color: var(--pp-text-secondary); line-height: 1.65; margin: 0; }
+.pp-loc-instructions { font-size: 12px; color: var(--pp-text-tertiary); line-height: 1.5; margin-top: 8px; }
+.pp-loc-link {
+  display: inline-block; margin-top: 10px;
+  font-weight: 600; font-size: 12px; color: var(--pp-gold); text-decoration: none;
+}
+
+/* ——— Meeting point: designed placeholder (after_booking) ——— */
+.pp-afterbooking-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed var(--pp-gold-glow); border-radius: 14px;
+  padding: 28px 20px; text-align: center;
+}
+.pp-afterbooking-icon {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  border-radius: 50%; background: var(--pp-gold-soft); color: var(--pp-gold);
+  display: flex; align-items: center; justify-content: center;
+}
+.pp-afterbooking-icon svg { width: 20px; height: 20px; }
+.pp-afterbooking-title {
+  font-family: var(--font-display); font-style: italic; font-weight: 600;
+  font-size: 18px; color: var(--pp-text-primary); margin: 0 0 6px;
+}
+.pp-afterbooking-text { font-size: 13px; color: var(--pp-text-secondary); line-height: 1.6; margin: 0; }
+
+/* ——— What's included: icon cards ——— */
+.pp-include-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.pp-include-card {
+  background: var(--pp-surface-raised);
+  border: 1px solid var(--pp-gold-soft); border-radius: 12px;
+  padding: 16px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+}
+.pp-include-icon { width: 24px; height: 24px; color: var(--pp-gold); }
+.pp-include-text { font-size: 12px; color: rgba(255,255,255,0.78); line-height: 1.4; margin: 0; }
+
+/* ——— What's not included: cleaner ×-marker list ——— */
+.pp-not-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.pp-not-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.60); line-height: 1.5; }
+.pp-not-mark { color: var(--pp-pink); font-weight: 700; flex-shrink: 0; margin-top: 1px; font-size: 11px; }
 
 /* ——— Good to know grid ——— */
 .pp-good-to-know { display: grid; gap: 28px; grid-template-columns: 1fr; }
@@ -347,4 +396,5 @@
 
 @media (min-width: 640px) {
   .pp-good-to-know { grid-template-columns: 1fr 1fr; }
+  .pp-include-grid { grid-template-columns: repeat(3, 1fr); }
 }
