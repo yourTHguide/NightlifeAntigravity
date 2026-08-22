@@ -2,12 +2,14 @@
    BEST Nightlife Thailand — Product Page design system
    Phase 4 Stage B: reusable renderer for /events/:slug.
 
-   Token values are pulled from this repo's existing design tokens rather
-   than invented — champagne gold (--cp-gold in css/dashboard.css) as the
-   primary premium accent, electric pink (--color-primary in css/index.css,
-   literally documented there as "Electric Pink") used sparingly, on the same
-   dark base + fonts as css/luxury-landing.css so this page feels like part
-   of bestnightlifethailand.com, not a bolt-on.
+   Decorative accent + editorial heading treatment reuse the exact values
+   from about.html / css/luxury-landing.css (the BNT About Us page):
+   --color-core-accent #EA003A + --color-fuchsia #820065, and the
+   linear-gradient(135deg, #EA003A, #820065) background-clip:text treatment
+   used on About's .card-header ("We bring the real Thai hospitality.").
+   Champagne gold is kept only for the primary booking CTA (button +
+   sticky bar) and the preview-fixture banner — functional UI, not part of
+   the BNT brand accent system.
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
@@ -23,12 +25,23 @@
   --pp-text-secondary: rgba(255, 255, 255, 0.68);
   --pp-text-tertiary: rgba(255, 255, 255, 0.42);
 
+  /* Gold — kept only for the primary CTA (button + sticky bar) and the
+     preview-fixture banner. Not part of the BNT brand accent system. */
   --pp-gold: #D4AF37;
   --pp-gold-glow: rgba(212, 175, 55, 0.35);
   --pp-gold-soft: rgba(212, 175, 55, 0.12);
 
+  /* BNT fuchsia — reused as-is from about.html / luxury-landing.css
+     (--color-core-accent / --color-fuchsia). This is the brand's
+     decorative accent: eyebrows, bullets, timeline, icons, links, and the
+     editorial serif-heading gradient. */
   --pp-pink: #EA003A;
   --pp-pink-glow: rgba(234, 0, 58, 0.35);
+  --pp-accent: #EA003A;
+  --pp-accent-2: #820065;
+  --pp-accent-glow: rgba(234, 0, 58, 0.35);
+  --pp-accent-soft: rgba(234, 0, 58, 0.14);
+  --pp-accent-gradient: linear-gradient(135deg, var(--pp-accent) 0%, var(--pp-accent-2) 100%);
 
   --pp-glow-1: #2F002F;
   --pp-glow-2: #41002A;
@@ -132,8 +145,8 @@
   font-style: italic;
   font-weight: 600;
   font-size: clamp(17px, 4vw, 22px);
-  color: var(--pp-gold);
-  text-shadow: 0 0 18px var(--pp-gold-glow);
+  color: var(--pp-accent);
+  text-shadow: 0 0 18px var(--pp-accent-glow);
   margin-top: 10px;
   max-width: 520px;
 }
@@ -174,17 +187,20 @@
   font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--pp-gold);
-  margin: 0 0 16px;
+  color: var(--pp-accent);
+  margin: 0 0 24px;
 }
-.pp-eyebrow--standalone { margin-bottom: 20px; }
+.pp-eyebrow--standalone { margin-bottom: 28px; }
 .pp-headline {
   font-style: italic;
   font-weight: 600;
-  font-size: clamp(24px, 5.5vw, 30px);
-  color: var(--pp-text-primary);
-  margin: 0 0 26px;
-  line-height: 1.32;
+  font-size: clamp(26px, 6vw, 32px);
+  background: var(--pp-accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 34px;
+  line-height: 1.35;
 }
 
 .pp-lede {
@@ -211,8 +227,8 @@
 .pp-bullet-dot {
   width: 9px; height: 9px; margin-top: 5px; flex-shrink: 0;
   border-radius: 50%;
-  background: var(--pp-gold);
-  box-shadow: 0 0 8px var(--pp-gold-glow);
+  background: var(--pp-accent);
+  box-shadow: 0 0 8px var(--pp-accent-glow);
 }
 .pp-bullet-text { font-size: 14px; color: var(--pp-text-body); line-height: 1.65; margin: 0; }
 .pp-bullets--small .pp-bullet-text { font-size: 13px; color: rgba(255,255,255,0.75); }
@@ -222,7 +238,7 @@
 .pp-timeline-row { display: flex; gap: 16px; align-items: flex-start; position: relative; }
 .pp-timeline-marker {
   width: 28px; height: 28px; border-radius: 50%;
-  border: 1px solid var(--pp-gold-glow); color: var(--pp-gold);
+  border: 1px solid var(--pp-accent-glow); color: var(--pp-accent);
   font-weight: 700; font-size: 12px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   position: relative; z-index: 1; background: var(--pp-bg);
@@ -230,7 +246,7 @@
 .pp-timeline-row:not(:last-child) .pp-timeline-marker::after {
   content: ''; position: absolute; top: 28px; left: 50%;
   width: 1px; height: calc(100% + 4px);
-  background: var(--pp-gold-soft); transform: translateX(-50%);
+  background: var(--pp-accent-soft); transform: translateX(-50%);
 }
 .pp-timeline-body { padding-bottom: 24px; }
 .pp-timeline-row:last-child .pp-timeline-body { padding-bottom: 0; }
@@ -259,18 +275,18 @@
 .pp-loc-instructions { font-size: 12px; color: var(--pp-text-tertiary); line-height: 1.5; margin-top: 8px; }
 .pp-loc-link {
   display: inline-block; margin-top: 10px;
-  font-weight: 600; font-size: 12px; color: var(--pp-gold); text-decoration: none;
+  font-weight: 600; font-size: 12px; color: var(--pp-accent); text-decoration: none;
 }
 
 /* ——— Meeting point: designed placeholder (after_booking) ——— */
 .pp-afterbooking-card {
   background: rgba(255,255,255,0.04);
-  border: 1px dashed var(--pp-gold-glow); border-radius: 14px;
+  border: 1px dashed var(--pp-accent-glow); border-radius: 14px;
   padding: 28px 20px; text-align: center;
 }
 .pp-afterbooking-icon {
   width: 44px; height: 44px; margin: 0 auto 14px;
-  border-radius: 50%; background: var(--pp-gold-soft); color: var(--pp-gold);
+  border-radius: 50%; background: var(--pp-accent-soft); color: var(--pp-accent);
   display: flex; align-items: center; justify-content: center;
 }
 .pp-afterbooking-icon svg { width: 20px; height: 20px; }
@@ -284,11 +300,11 @@
 .pp-include-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .pp-include-card {
   background: var(--pp-surface-raised);
-  border: 1px solid var(--pp-gold-soft); border-radius: 12px;
+  border: 1px solid var(--pp-accent-soft); border-radius: 12px;
   padding: 16px 10px;
   display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
 }
-.pp-include-icon { width: 24px; height: 24px; color: var(--pp-gold); }
+.pp-include-icon { width: 24px; height: 24px; color: var(--pp-accent); }
 .pp-include-text { font-size: 12px; color: var(--pp-text-body); line-height: 1.4; margin: 0; }
 
 /* ——— What's not included: cleaner ×-marker list ——— */
