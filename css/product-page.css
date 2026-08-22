@@ -147,7 +147,7 @@
   max-width: 640px;
   margin: 0 auto;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 20px 32px;
 }
 .pp-fact-label {
@@ -157,8 +157,9 @@
   text-transform: uppercase;
   color: var(--pp-text-tertiary);
   margin: 0 0 4px;
+  white-space: nowrap;
 }
-.pp-fact-value { font-weight: 600; font-size: 16px; color: var(--pp-text-primary); margin: 0; }
+.pp-fact-value { font-weight: 600; font-size: 16px; color: var(--pp-text-primary); margin: 0; white-space: nowrap; }
 
 /* ——— Generic section shell ——— */
 .pp-section { padding: 48px 20px; }
@@ -166,9 +167,11 @@
 .pp-section--alt { background: var(--pp-surface); }
 
 .pp-eyebrow {
-  font-weight: 700;
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--pp-gold);
   margin: 0 0 14px;
@@ -324,6 +327,22 @@
 @media (max-width: 768px) {
   .pp-sticky-bar { display: flex; }
   .pp-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+
+  /* Keep all four Quick Facts columns on one row — tighten just enough
+     that the widest value ("฿890 / person") never has to wrap. */
+  .pp-quickfacts { padding: 16px 14px; }
+  .pp-quickfacts-inner { gap: 6px 10px; }
+  .pp-fact-label { font-size: 8px; letter-spacing: 0.10em; }
+  .pp-fact-value { font-size: 13px; }
+}
+
+/* Extra-narrow phones (e.g. 320px-class devices) need a touch more room
+   for "฿890 / person" than the 768px breakpoint alone gives. */
+@media (max-width: 360px) {
+  .pp-quickfacts { padding: 14px 10px; }
+  .pp-quickfacts-inner { gap: 5px 7px; }
+  .pp-fact-label { font-size: 7px; letter-spacing: 0.08em; }
+  .pp-fact-value { font-size: 12px; }
 }
 
 @media (min-width: 640px) {
