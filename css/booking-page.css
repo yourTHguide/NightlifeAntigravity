@@ -6,8 +6,10 @@
    has no runtime dependency on product-page.css — same approach Stage B
    used. Tokens are the same locked values from
    PHASE4_STAGEB_PRODUCT_PAGE_CHECKPOINT.md: dark base, BNT fuchsia/magenta
-   as the primary decorative + interactive accent, gold reserved for the
-   functional CTA/button treatment only.
+   as the primary decorative + interactive accent everywhere in this
+   surface (CTA, totals, ticket prices, selected states). Gold is kept only
+   for the preview-fixture dev banner — it is not part of this booking
+   surface's guest-facing palette.
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
@@ -23,8 +25,8 @@
   --bp-text-secondary: rgba(255, 255, 255, 0.68);
   --bp-text-tertiary: rgba(255, 255, 255, 0.42);
 
+  /* Preview/dev banner only — not part of this surface's brand palette. */
   --bp-gold: #D4AF37;
-  --bp-gold-soft: rgba(212, 175, 55, 0.12);
 
   --bp-accent: #EA003A;
   --bp-accent-2: #820065;
@@ -152,50 +154,92 @@
   font-size: 32px;
   line-height: 1.15;
   font-weight: 700;
-  margin: 0 0 26px;
+  margin: 0 0 10px;
   background: var(--bp-accent-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .bp-subtitle {
-  margin: -18px 0 26px;
+  margin: 0 0 32px;
   font-size: 14px;
   color: var(--bp-text-secondary);
 }
+/* .bp-subtitle is display:none via [hidden] when a product has no
+   subtitle, so its margin can't be relied on for headline->controls
+   breathing room. #bp-date-field/.bp-one-night supply their own top
+   margin instead — it collapses with .bp-subtitle's bottom margin (to
+   the larger value) when the subtitle IS shown, so this never doubles up. */
+#bp-date-field {
+  margin-top: 18px;
+}
 
-/* ——— Generic product selector (no ?night given) ——— */
-.bp-selector-grid {
+/* ——— Discovery browser (/book with no ?night) ——— */
+.bp-event-card-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 @media (min-width: 640px) {
-  .bp-selector-grid { grid-template-columns: 1fr 1fr; }
+  .bp-event-card-grid { grid-template-columns: 1fr 1fr; }
 }
-.bp-selector-card {
+.bp-event-card {
+  position: relative;
   display: block;
-  background: var(--bp-surface);
-  border: 1px solid var(--bp-border);
-  border-radius: 14px;
-  padding: 20px;
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: var(--bp-surface);
+  background-image: linear-gradient(135deg, var(--bp-accent-soft) 0%, rgba(28, 28, 30, 0.6) 100%);
+  background-size: cover;
+  background-position: center;
   text-decoration: none;
   color: var(--bp-text-primary);
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  border: 1px solid var(--bp-border);
+  transition: transform 0.15s ease;
 }
-.bp-selector-card:hover {
-  border-color: var(--bp-accent);
-  transform: translateY(-2px);
+.bp-event-card:hover { transform: translateY(-2px); }
+.bp-event-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(13, 13, 13, 0.6);
+  backdrop-filter: blur(6px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bp-text-primary);
 }
-.bp-selector-card-name {
+.bp-event-card-badge span:first-child { color: var(--bp-accent); font-size: 10px; }
+.bp-event-card-badge span:last-child { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.bp-event-card-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 16px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
+}
+.bp-event-card-name {
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 700;
+  margin: 0 0 2px;
+}
+.bp-event-card-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
   margin: 0 0 6px;
 }
-.bp-selector-card-meta {
+.bp-event-card-price {
   font-size: 13px;
-  color: var(--bp-text-secondary);
+  font-weight: 600;
+  color: var(--bp-text-primary);
   margin: 0;
 }
 
@@ -227,12 +271,12 @@
 .bp-date-card {
   flex: 0 0 auto;
   width: 64px;
-  min-height: 76px;
+  min-height: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   font-family: var(--font-body);
   background: var(--bp-surface);
   border: 1px solid var(--bp-border);
@@ -262,13 +306,6 @@
   text-transform: uppercase;
   color: var(--bp-text-secondary);
 }
-.bp-date-card-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--bp-accent);
-  margin-top: 2px;
-}
 .bp-date-card.is-selected {
   background: var(--bp-accent-gradient);
   border-color: transparent;
@@ -276,10 +313,13 @@
 .bp-date-card.is-selected .bp-date-card-month,
 .bp-date-card.is-selected .bp-date-card-weekday { color: rgba(255, 255, 255, 0.85); }
 .bp-date-card.is-selected .bp-date-card-day { color: #FFFFFF; }
-.bp-date-card.is-selected .bp-date-card-dot { background: #FFFFFF; }
 
-/* ——— One-time / signature-event framing (single upcoming occurrence) ——— */
+/* ——— One-time / signature-event framing (single upcoming occurrence) ———
+   Deliberate margin-top on top of .bp-subtitle/.bp-headline's own bottom
+   margin: this needs to read as its own hierarchy level below the event
+   identity block, not a continuation of it. ——— */
 .bp-one-night {
+  margin-top: 28px;
   padding: 18px 20px;
   margin-bottom: 24px;
   background: var(--bp-surface);
@@ -292,7 +332,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--bp-gold);
+  color: var(--bp-accent);
 }
 .bp-one-night-text {
   margin: 0;
@@ -310,8 +350,10 @@
   margin-bottom: 24px;
 }
 
-/* ——— Ticket type (architected for a future multi-tier canonical schema;
-   hidden today since every occurrence has exactly one effective price) ——— */
+/* ——— Ticket type — reads from an optional per-event ticketOptions array
+   (preview-fixture-only today; see server.js's shapeBntEvent). Hidden
+   entirely when an event carries zero or one option, since there is
+   nothing to make the guest choose between. ——— */
 .bp-ticket-grid {
   display: flex;
   flex-direction: column;
@@ -320,14 +362,34 @@
 .bp-ticket-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 14px 16px;
   background: var(--bp-surface);
   border: 1px solid var(--bp-border);
   border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.bp-ticket-option-label { font-size: 14px; font-weight: 500; color: var(--bp-text-body); }
-.bp-ticket-option-price { font-size: 14px; font-weight: 600; color: var(--bp-gold); }
+.bp-ticket-option:hover { border-color: var(--bp-accent); }
+.bp-ticket-option.is-selected {
+  border-color: var(--bp-accent);
+  background: var(--bp-accent-soft);
+}
+.bp-ticket-radio {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--bp-text-tertiary);
+}
+.bp-ticket-option.is-selected .bp-ticket-radio {
+  border-color: var(--bp-accent);
+  background: radial-gradient(circle, var(--bp-accent) 0 42%, transparent 44%);
+}
+.bp-ticket-info { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+.bp-ticket-label { font-size: 14px; font-weight: 600; color: var(--bp-text-primary); }
+.bp-ticket-sublabel { font-size: 12px; color: var(--bp-text-tertiary); }
+.bp-ticket-price { flex: 0 0 auto; font-size: 14px; font-weight: 700; color: var(--bp-accent); }
 
 .bp-qty-stepper {
   display: inline-flex;
@@ -382,7 +444,7 @@
 .bp-total-value {
   font-size: 24px;
   font-weight: 700;
-  color: var(--bp-gold);
+  color: var(--bp-text-primary);
 }
 
 /* ——— CTA (structurally non-clickable — Stage D wires the real action) ——— */
@@ -393,14 +455,13 @@
   width: 100%;
   padding: 18px;
   border-radius: 9999px;
-  background: var(--bp-gold);
-  color: #1A0015;
+  background: var(--bp-accent-gradient);
+  color: #FFFFFF;
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.08em;
   text-align: center;
   text-transform: uppercase;
-  opacity: 0.55;
   cursor: default;
   user-select: none;
 }
@@ -425,6 +486,13 @@
   gap: 16px;
   padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
   background: var(--bp-accent-gradient);
+}
+/* The [hidden] attribute selector's specificity (0,2,0) beats the plain
+   class rule above (0,1,0) that sets display:flex — without this, the
+   sticky bar stays visible on every page state (discover, empty) even
+   while [hidden] is set. */
+.bp-sticky-bar[hidden] {
+  display: none;
 }
 .bp-sticky-price {
   font-family: var(--font-body);

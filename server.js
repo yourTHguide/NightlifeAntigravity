@@ -397,6 +397,12 @@ function shapeBntEvent(e) {
         eventDate: e.eventDate,
         effectiveStartTime: e.effectiveStartTime,
         effectivePrice: e.effectivePrice,
+        // Presentation-only, optional: the canonical feed doesn't send these
+        // yet, so they're simply undefined for real (non-fixture) events —
+        // renderBookingPage.js already treats all three as optional.
+        productSubtitle: e.subtitle || undefined,
+        heroImage: e.heroImage || undefined,
+        ticketOptions: Array.isArray(e.ticketOptions) ? e.ticketOptions : undefined,
     };
 }
 
