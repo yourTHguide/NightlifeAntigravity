@@ -32,6 +32,9 @@ const rateLimit = require('express-rate-limit');
 const productApi = require('./lib/canonicalProductApi');
 const { renderProductPage, renderProductFallbackPage } = require('./lib/renderProductPage');
 const productPageFixtures = require('./fixtures/productPageFixtures');
+const eventsApi = require('./lib/canonicalEventsApi');
+const { renderBookingPage } = require('./lib/renderBookingPage');
+const bookingFixtures = require('./fixtures/bookingFixtures');
 
 
 // ——— Config ———
@@ -377,11 +380,80 @@ app.get('/events/:slug', async (req, res) => {
     );
 });
 
+// ═══════════════════════════════════════════════════
+//  GET /api/events — Phase 4 Stage C
+//  Thin BNT server-to-server proxy for the canonical event-availability
+//  feed (bcc-claude GET /api/events?storefront=bnt). Never a direct
+//  Supabase connection from this repo. storefront is always forced to
+//  'bnt' server-side inside lib/canonicalEventsApi.js — this route never
+//  reads or forwards a browser-supplied storefront. Only the fields the
+//  BNT booking UI actually needs are passed through to the browser.
+// ═══════════════════════════════════════════════════
+function shapeBntEvent(e) {
+    return {
+        eventId: e.eventId,
+        productSlug: e.productSlug,
+        productName: e.productName,
+        eventDate: e.eventDate,
+        effectiveStartTime: e.effectiveStartTime,
+        effectivePrice: e.effectivePrice,
+    };
+}
+
+app.get('/api/events', async (req, res) => {
+    const previewKey = typeof req.query.preview === 'string' ? req.query.preview : null;
+
+    let events;
+    if (previewKey && eventsApi.isMockAllowed()) {
+        const fixture = bookingFixtures[previewKey];
+        if (!fixture) {
+            return res.status(404).json({
+                error: `Unknown preview fixture "${previewKey}". Available: ${Object.keys(bookingFixtures).join(', ')}.`,
+            });
+        }
+        events = fixture;
+    } else {
+        const result = await eventsApi.fetchCanonicalEvents();
+        if (result.status === 'error') {
+            return res.status(503).json({ error: 'Events temporarily unavailable. Please try again.' });
+        }
+        events = result.events;
+    }
+
+    return res.json({ events: events.map(shapeBntEvent) });
+});
+
+// ═══════════════════════════════════════════════════
+//  GET /book — Phase 4 Stage C
+//  Generic BNT booking surface for any BNT product's Event Instances.
+//  ?night=<product-slug> preselects a product; with no ?night, shows a
+//  generic cross-product selector. Renders the page shell only — all
+//  availability data is fetched client-side from the local /api/events
+//  proxy above (the browser never contacts the canonical API directly).
+//  The booking CTA is present but structurally non-clickable: Stripe
+//  checkout is Stage D, not this stage.
+// ═══════════════════════════════════════════════════
+app.get('/book', (req, res) => {
+    const night = typeof req.query.night === 'string' ? req.query.night.trim() : '';
+    const previewKey = typeof req.query.preview === 'string' ? req.query.preview : null;
+    const previewBanner =
+        previewKey && eventsApi.isMockAllowed()
+            ? `PREVIEW FIXTURE ("${previewKey}") — mock data, not connected to the live availability API`
+            : null;
+    const pageUrl = `${req.protocol}://${req.get('host')}${req.originalUrl.split('?')[0]}`;
+
+    return res.send(renderBookingPage({ night, previewKey, previewBanner, pageUrl }));
+});
+
 // ——— Legacy BCC Page Redirects (Phase 1 decommission) ———
 // Prevents any new BCC transactions from entering the legacy Nightlife pipeline.
 // New canonical BCC site: https://www.bkkclubcrawl.com
+// NOTE: '/book' (no extension) is intentionally NOT in this list — Phase 4
+// Stage C reclaims that exact path for BNT's own generic booking surface
+// (see GET /book above). Only the legacy literal '/book.html' URL still
+// redirects to the old BCC page, for any stale inbound links to it.
 const BCC_CANONICAL = 'https://www.bkkclubcrawl.com';
-app.get(['/book', '/book.html'],            (req, res) => res.redirect(301, `${BCC_CANONICAL}/book`));
+app.get(['/book.html'],                     (req, res) => res.redirect(301, `${BCC_CANONICAL}/book`));
 app.get(['/index.html'],                     (req, res) => res.redirect(301, BCC_CANONICAL));
 app.get(['/dashboard', '/dashboard.html'],   (req, res) => res.redirect(301, `${BCC_CANONICAL}/dashboard`));
 app.get(['/admin-v2', '/admin-v2.html'],     (req, res) => res.status(410).send('This page has been decommissioned.'));
