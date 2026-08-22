@@ -188,9 +188,9 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--pp-accent);
-  margin: 0 0 24px;
+  margin: 0 0 14px;
 }
-.pp-eyebrow--standalone { margin-bottom: 28px; }
+.pp-eyebrow--standalone { margin-bottom: 30px; }
 .pp-headline {
   font-style: italic;
   font-weight: 600;
@@ -199,7 +199,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 34px;
+  margin: 0 0 42px;
   line-height: 1.35;
 }
 
